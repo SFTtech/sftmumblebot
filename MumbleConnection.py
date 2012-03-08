@@ -77,10 +77,9 @@ class MumbleConnection:
             return false
 
         pbMess = Mumble_pb2.Authenticate()
-        pbMess.password = self.password
-        pbMess.username = self.nickname
-        if self.password != None:
-            pbMess.password = self.password
+        pbMess.username = self._nickname
+        if self._password != None:
+            pbMess.password = self._password
 
         if not self.packageAndSend(pbMess):
             print "couldn't send auth packet, wtf?!"
