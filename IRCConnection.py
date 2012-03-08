@@ -54,7 +54,7 @@ class IRCConnection:
         try:
             # synchronized gschichtn
             self.log("tx: "+message, 2)
-            self._socket.send(message + "\n")
+            self._socket.send(message.encode('ascii') + "\n")
         finally:
             self._sendingLock.release()
    
@@ -65,6 +65,7 @@ class IRCConnection:
     _textCallback = []
 
     def messageReceived(self, sender, text):
+        text = text.decode('ascii')
         for f in self._textCallback:
             f(sender, text)
 

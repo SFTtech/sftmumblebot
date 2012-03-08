@@ -8,12 +8,12 @@ mumble = None
 
 def mumbleTextMessageCallback(sender, message):
 	line="mumble: " + sender + ": " + message
-	print(line)
+	print(line.encode('utf-8'))
 	irc.sendTextMessage(line)
 
 def ircTextMessageCallback(sender, message):
 	line="irc: " + sender + ": " + message
-	print(line)
+	print(line.encode('utf-8'))
 	mumble.sendTextMessage(line)
 
 def main():
@@ -37,7 +37,7 @@ def main():
 			break
 
 		if(line):
-			line = "console: " + line
+			line = "console: " + line.decode('utf-8')
 			mumble.sendTextMessage(line) 
 			irc.sendTextMessage(line)
 

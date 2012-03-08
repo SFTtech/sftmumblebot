@@ -123,7 +123,7 @@ class MumbleConnection:
         pbMess = Mumble_pb2.TextMessage()
         pbMess.session.append(self._session)
         pbMess.channel_id.append(self._channelId)
-        pbMess.message = text
+        pbMess.message = text.encode('utf-8')
         self.log("sending text message: "+text, 2)
         if not self.packageAndSend(pbMess):
             self.log("\tcouldnt't send text message, wtf?", 1)
@@ -213,6 +213,7 @@ class MumbleConnection:
                     sender = "unknown"
                     self.log("\tunknown sender id "+message.actor+" for text message",1)
                 self.log("text message received", 2)
+                msg = message.message.decode("utf-8")
                 for f in self._textCallback:
                     f(sender, message.message)
             elif messagetype == Mumble_pb2.UserState:
