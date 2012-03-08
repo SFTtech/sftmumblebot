@@ -23,7 +23,7 @@ def main():
 	loglevel = 0
 
 	#create server connections
-	mumble = MumbleConnection.MumbleConnection("wue.ensslin.cc", 1337, "Neger", "timebot", "robot_enrichment_center", loglevel)
+	mumble = MumbleConnection.MumbleConnection("wue.ensslin.cc", 1337, "Neger", "sftbot", "robot_enrichment_center", loglevel)
 	irc = IRCConnection.IRCConnection("irc.freenode.net", 6667, "sftbot", "sftclan", loglevel)
 
 	mumble.registerTextCallback(mumbleTextMessageCallback)
