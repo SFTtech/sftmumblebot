@@ -62,6 +62,7 @@ class MumbleConnection:
         for i in self._messageLookupMessage.keys():
             self._messageLookupNumber[self._messageLookupMessage[i]] = i
 
+        # mutexes for sending and receiving
         self._sendingLock = threading.Lock();
         self._receivingLock = threading.Lock();
 
@@ -71,9 +72,20 @@ class MumbleConnection:
         pbMess.version = 66048
         pbMess.os = platform.system()
         pbMess.os_version = "mumblebot lol"
-        
-        self.packageAndSend(pbMess)        
+        if not self.packageAndSend(pbMess):
+            print "couldn't send version packet, wtf?!"
+            return false
 
+        pbMess = Mumble_pb2.Authenticate()
+        pbMess.password = self.password
+        pbMess.username = self.nickname
+        if self.password != None:
+            pbMess.password = self.password
+
+        if not self.packageAndSend(pbMess):
+            print "couldn't send auth packet, wtf?!"
+            return false
+  
     def packageAndSend(self, message):
         stringMessage = message.SerializeToString()
         length = len(stringMessage)
