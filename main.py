@@ -3,17 +3,31 @@ import sys
 import MumbleConnection
 import IRCConnection
 
-def textCallback(sender, message):
-	print(sender + ": " + message);
+irc = None
+mumble = None
+
+def mumbleTextMessageCallback(sender, message):
+	line="mumble: " + sender + ": " + message
+	print(line)
+	irc.sendTextMessage(line)
+
+def ircTextMessageCallback(sender, message):
+	line="irc: " + sender + ": " + message
+	print(line)
+	mumble.sendTextMessage(line)
 
 def main():
-	mc = MumbleConnection.MumbleConnection("wue.ensslin.cc", 1337, "Neger", "timebot", "robot_enrichment_center", 0)
-	mc.registerTextCallback(textCallback)
-	mc.connectToServer()
+	global mumble
+	global irc
 
-	ic = IRCConnection.IRCConnection("irc.freenode.net", 6667, "sftbot", "sftclan")
+	loglevel = 0
 
-	print("lol")
+	#create server connections
+	mumble = MumbleConnection.MumbleConnection("wue.ensslin.cc", 1337, "Neger", "timebot", "robot_enrichment_center", loglevel)
+	irc = IRCConnection.IRCConnection("irc.freenode.net", 6667, "sftbot", "sftclan", loglevel)
+
+	mumble.registerTextCallback(mumbleTextMessageCallback)
+	irc.registerTextCallback(ircTextMessageCallback)
 
 	while True:
 		try:
@@ -23,7 +37,9 @@ def main():
 			break
 
 		if(line):
-			mc.sendTextMessage(line) 
+			line = "console: " + line
+			mumble.sendTextMessage(line) 
+			irc.sendTextMessage(line)
 
 if __name__=="__main__":
 	main()

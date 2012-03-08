@@ -20,7 +20,7 @@ class MumbleConnection:
     _session = None
     _channel = None
     _channelId = None
-    _verbosity = 0
+    _loglevel = 0
 
     #lookup table required for getting message type Ids from message types
     _messageLookupMessage = {
@@ -65,14 +65,14 @@ class MumbleConnection:
     #a list of all callback functions that will be invoked when a text message is received.
     _textCallback = []
 
-    def __init__(self, hostname, port, password, nickname, channel, verbosity):
+    def __init__(self, hostname, port, password, nickname, channel, loglevel):
         # normally we would check the parameters for plausibility, but we're too lazy. we trust them to be well-formed
         self._hostname = hostname
         self._port = port
         self._password = password
         self._nickname = nickname
         self._channel = channel
-        self._verbosity = verbosity
+        self._loglevel = loglevel
 
         # now, we gschichtl a socket.
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -86,11 +86,13 @@ class MumbleConnection:
             self._messageLookupNumber[self._messageLookupMessage[i]] = i
 
         # mutexes for sending and receiving
-        self._sendingLock = threading.Lock();
-        self._receivingLock = threading.Lock();
+        self._sendingLock = threading.Lock()
+
+        # try to init the connection
+        self.connectToServer()
 
     def log(self, message, level):
-        if(self._verbosity >= level):
+        if(self._loglevel >= level):
             print(message)
 
     def connectToServer(self):
@@ -125,6 +127,7 @@ class MumbleConnection:
         self.log("sending text message: "+text, 2)
         if not self.packageAndSend(pbMess):
             self.log("\tcouldnt't send text message, wtf?", 1)
+
     def joinChannel(self, channel):
         try:
             cid=self._channelIds[channel]
