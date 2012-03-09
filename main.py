@@ -2,44 +2,88 @@
 import sys
 import MumbleConnection
 import IRCConnection
+import Console
+import time
 
 irc = None
 mumble = None
+console = None
 
 def mumbleTextMessageCallback(sender, message):
 	line="mumble: " + sender + ": " + message
-	print(line.encode('utf-8'))
+	console.sendTextMessage(line)
 	irc.sendTextMessage(line)
 
 def ircTextMessageCallback(sender, message):
 	line="irc: " + sender + ": " + message
-	print(line.encode('utf-8'))
+	console.sendTextMessage(line)
 	mumble.sendTextMessage(line)
 
+def consoleTextMessageCallback(sender, message):
+    line="console: " + message
+    irc.sendTextMessage(line)
+    mumble.sendTextMessage(line)
+
+def mumbleDisconnected():
+    line="connection to mumble lost. reconnect in 5 seconds."
+    console.sendTextMessage(line)
+    irc.sendTextMessage(line)
+    time.sleep(5)
+    mumble.start()
+
+def mumbleConnectionFailed():
+    line="connection to mumble failed. retrying in 15 seconds."
+    console.sendTextMessage(line)
+    irc.sendTextMessage(line)
+    time.sleep(15)
+    mumble.start()
+
+def ircDisconnected():
+    line="connection to irc lost. reconnect in 5 seconds."
+    console.sendTextMessage(line)
+    irc.sendTextMessage(line)
+    time.sleep(5)
+    irc.start()
+
+def ircConnectionFailed():
+    line="connection to irc failed. retrying in 15 seconds."
+    console.sendTextMessage(line)
+    mumble.sendTextMessage(line)
+    time.sleep(15)
+    irc.start()
+
+
 def main():
-	global mumble
-	global irc
+    global mumble
+    global irc
+    global console
 
-	loglevel = 0
+    loglevel = 1
 
-	#create server connections
-	mumble = MumbleConnection.MumbleConnection("wue.ensslin.cc", 1337, "Neger", "sftbot", "robot_enrichment_center", loglevel)
-	irc = IRCConnection.IRCConnection("irc.freenode.net", 6667, "sftbot", "sftclan", loglevel)
+    # create server connections
+    mumble = MumbleConnection.MumbleConnection("wue.ensslin.cc", 1337, "Neger", "sftbot", "robot_enrichment_center", loglevel)
+    irc = IRCConnection.IRCConnection("irc.freenode.net", 6667, "sftbot", "sftclan", "utf-8", loglevel)
+    console = Console.Console("utf-8", loglevel)
 
-	mumble.registerTextCallback(mumbleTextMessageCallback)
-	irc.registerTextCallback(ircTextMessageCallback)
+    # register text callback functions
+    mumble.registerTextCallback(mumbleTextMessageCallback)
+    irc.registerTextCallback(ircTextMessageCallback)
+    console.registerTextCallback(consoleTextMessageCallback)	
 
-	while True:
-		try:
-			line = sys.stdin.readline()
-		except KeyboardInterrupt:
-			print("interrupted.")
-			break
+    # register connection-lost callback functions
+    irc.registerConnectionLostCallback(ircDisconnected)
+    mumble.registerConnectionLostCallback(mumbleDisconnected)
 
-		if(line):
-			line = "console: " + line.decode('utf-8')
-			mumble.sendTextMessage(line) 
-			irc.sendTextMessage(line)
+    # register connection-failed callback functions
+    irc.registerConnectionFailedCallback(ircConnectionFailed)
+    mumble.registerConnectionFailedCallback(mumbleConnectionFailed)
+
+    # start the connections. they will be self-sustaining due to the callback functions
+    mumble.start()
+    irc.start()
+
+    #use the console as main loop
+    console.run()
 
 if __name__=="__main__":
-	main()
+    main()
