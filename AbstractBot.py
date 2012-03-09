@@ -1,0 +1,211 @@
+import sys
+import socket
+import string
+import thread
+import threading
+import traceback
+
+class AbstractConnection(object):
+    # the mutex for sending raw data
+    _sendingLock = None
+
+    # this variable stores if we're currently connected, and all neccesary initial packages have been sent
+    _connected = False
+    # this variable stores if the conneciton is fully established, allowing text messages to be sent
+    _established = False
+
+    # the name of the bot, as it appears in the logs.
+    _name = None
+
+    #a list of all callback functions that will be invoked when a text message is received.
+    _textCallback = []
+    #a list of all callback functions that will be invoked when the connection is established.
+    _connectionEstablishedCallback = []
+    #a list of all callback functions that will be invoked when the connection is lost.
+    _connectionLostCallback = []
+    #a list of all callback functions that will be invoked when a connection attempt fails.
+    _connectionFailedCallback = []
+
+    def registerTextCallback(self, function):
+        self._textCallback.append(function)
+
+    def registerConnectionEstablishedCallback(self, function):
+        self._connectionEstablishedCallback.append(function)
+
+    def registerConnectionLostCallback(self, function):
+        self._connectionLostCallback.append(function)
+
+    def registerConnectionFailedCallback(self, function):
+        self._connectionFailedCallback.append(function)
+
+    def _invokeTextCallback(self, sender, message):
+        for f in self._textCallback:
+            f(sender, message)
+
+    def _invokeConnectionEstablishedCallback(self):
+        for f in self._connectionEstablishedCallback:
+            f()
+
+    def _invokeConnectionLostCallback(self):
+        for f in self._connectionLostCallback:
+            f()
+    
+    def _invokeConnectionFailedCallback(self):
+        for f in self._connectionFailedCallback:
+            f()
+
+    # the constructor should only set global configuration variables according to
+    # it's arguments. under no circumstances, it should open a connection. that's the
+    # job of the methods invoked by run()
+    # you should overload this method, but in the first line call the super constructor
+    def __init__(self, name, loglevel):
+        self._sendingLock = threading.Lock()
+        self._loglevel = loglevel
+        self._connected = False
+        self._established = False
+        self._name = name
+
+    # call this to start the connection, as a thread
+    # you should not overload this method
+    def start(self):
+        thread.start_new_thread(self.run, ())
+
+    # call this to start the connection, directly
+    # you should not overload this method
+    def stop(self):
+        self._connected = False
+        self._established = False
+
+    # do stuff like opening sockets/files
+    # return true if and only if the connection was successfully opened
+    # if an error occured, eighter return false, or raise an exception that contains a detailed description
+    # you need to overload this method
+    def _openConnection(self):
+        raise notImplementedError("_openConnection() not implemented in abstract class AbstractConnection")
+
+    # do stuff like sending initial packages or launching a PING thread
+    # return true if and only if the connection was successfully opened
+    # if an error occured, eighter return false, or raise an exception that contains a detailed description
+    # you need to overload this method, even if 'return true' will be it's only content
+    def _initConnection(self):
+        raise notImplementedError("_initConnection() not implemented in abstract class AbstractConnection")
+
+    # this method needs to be called manually, as soon as the connection is ready to transmit text
+    # messages.
+    # you should not overload this method
+    def _connectionEstablished(self):
+        if not self._connected:
+            raise Exception("conneciton can't be established, since it's not even connected")
+        self._established = True
+        self._invokeConnectionEstablishedCallback()
+
+    # do stuff like calling _connectionEstablished()
+    # return false or raise an error to close the connection immediately before it enters the listening loop.
+    # you can, but won't need to, overload this method
+    def _postConnect(self):
+        self._connectionEstablished()
+        return True
+
+    # do stuff like closing the socket/file
+    # return true if and only if the connection was successfully closed, and if it was still open beforehand
+    # otherwise, eighter return false, or raise an exception that contains a detailed description
+    # you need to overload this method
+    def _closeConnection(self):
+        raise notImplementedError("_closeConnection() not implemented in abstract class AbstractConnection")
+
+    # opens and initializes the connection, contains the listening loop, and closes the connection.
+    # you should not overload this method
+    def run(self):
+        try:
+            if not self._openConnection():
+                raise Exception("unknown error")
+        except:
+            self._log("connection could not be opened:\n" + sys.exc_info()[0], 0)
+            self._log(traceback.format_exc(), 1)
+            self._invokeConnectionFailedCallback()
+            return
+        else:
+            self.log("connection successfully opened", 2)
+
+        try:
+            if not self._initConnections():
+                raise Exception("unknown error")
+        except:
+            self._log("initial packages could not be sent:\n" + sys.exc_info()[0], 0)
+            self._log(traceback.format_exc(), 1)
+            self._invokeConnectionFailedCallback()
+            return
+        else:
+            self._log("initial packages successfully sent", 2)
+
+        # we can now consider ourselves connected
+        # please note that the connection does not count as established yet,
+        # you'll need to call invokeConnectionEstablishedCallback yourself...
+        self._connected = True
+
+        try:
+            # ... for example in this optional post-connect method.
+            if not self._postConnect():
+                raise Exception("postConnect error")
+
+            # the main listening loop.
+            while self._connected:
+                if not self._listen():
+                    raise Exception("listening error")
+        except:
+            self._log("connection terminated with an error:\n" + sys.exc_info()[0], 0)
+            self._log(traceback.format_exc(), 1)
+        else:
+            self._log("connection terminated without error", 1)            
+
+        self._established = False
+        self._connected = False
+        
+        # try to close the file/socket, in case it's still open.
+        try:
+            if not self._closeConnection():
+                raise Exception("unknown error")
+        except:
+            self._log("socket could not be closed:\n" + sys.exc_info()[0], 1)
+            self._log(traceback.format_exc(), 2)
+        else:
+            self._log("socket successfully closed", 2)
+
+        # invoke the connectionLost callback functions.
+        self._invokeConnectionLostCallback()
+
+    # prints a log message to stdout.
+    # you should not overload this method.
+    def _log(self, message, level):
+        if(self._loglevel >= level):
+            for line in message.split('\n'):
+                print("(" + str(level) + ") " + self._name + ": " + line.encode('utf-8'))
+
+    # contains the main listening loop, which reads data from the socket/file, and sends responses.
+    # you need to overload this method.
+    def _listen(self):
+        raise notImplementedError("_listen() not implemented in abstract class AbstractConnection")
+
+    # sends a message, taking care of thread-safety and error handling.
+    # calls _sendUnprotectedMessage to do the actual job.
+    # you should not overload this method.
+    def _sendMessage(self, message):
+        self._sendingLock.acquire()
+        try:
+            # synchronized gschichten.
+            if not self._sendMessageUnsafe(message):
+                raise Exception("unknown error")
+        except:
+            self._log("could not send message: " + sys_exc_info()[0], 1)
+            self._log(traceback.format_exc(), 2)
+        self._sendingLock.release()
+
+    # sends the message via the connection's socket/file/etc
+    # you need to overload this method.
+    def _sendMessageUnsafe(self, message):
+        raise notImplementedError("_sendMessageUnsafe() not implemented in abstract class AbstractConnection")
+
+    # sends a text message, using _sendMessage().
+    # you need to overload this method.
+    def sendTextMessage(self, message):
+        raise notImplementedError("sendTextMessage() not implemented in abstract class AbstractConnection")
