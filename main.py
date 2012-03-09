@@ -10,14 +10,18 @@ mumble = None
 console = None
 
 def mumbleTextMessageCallback(sender, message):
-	line="mumble: " + sender + ": " + message
-	console.sendTextMessage(line)
-	irc.sendTextMessage(line)
+    line="mumble: " + sender + ": " + message
+    console.sendTextMessage(line)
+    irc.sendTextMessage(line)
+    if(message == 'gtfo'):
+        mumble.stop()
 
 def ircTextMessageCallback(sender, message):
-	line="irc: " + sender + ": " + message
-	console.sendTextMessage(line)
-	mumble.sendTextMessage(line)
+    line="irc: " + sender + ": " + message
+    console.sendTextMessage(line)
+    mumble.sendTextMessage(line)
+    if (message == 'gtfo'):
+        irc.stop()
 
 def consoleTextMessageCallback(sender, message):
     line="console: " + message
@@ -41,7 +45,7 @@ def mumbleConnectionFailed():
 def ircDisconnected():
     line="connection to irc lost. reconnect in 5 seconds."
     console.sendTextMessage(line)
-    irc.sendTextMessage(line)
+    mumble.sendTextMessage(line)
     time.sleep(5)
     irc.start()
 

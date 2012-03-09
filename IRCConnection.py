@@ -97,10 +97,10 @@ class IRCConnection:
         self._connected = False
         
         try:
-            sock.shutdown(socket.SHUT_RDWR)
-            sock.close()
+            self._socket.shutdown(socket.SHUT_RDWR)
+            self._socket.close()
         except:
-            self.log("socket could not be shut down and closed", 1)
+            self.log("socket could not be shut down and closed:\n"+traceback.format_exc(), 1)
         
         # invoke the connectionLost callback functions
         for f in self._connectionLostCallback:
@@ -149,7 +149,7 @@ class IRCConnection:
    
     def sendTextMessage(self, message):
         if not self._connected:
-            log("warning: tried to send text message, but not connected", 1)
+            self.log("warning: tried to send text message, but not connected", 1)
 
         # send the message
         self._sendRawString("PRIVMSG #" + self._channel + " :" + message)
