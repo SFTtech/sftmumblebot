@@ -99,6 +99,7 @@ class IRCConnection:
         try:
             self._socket.shutdown(socket.SHUT_RDWR)
             self._socket.close()
+            self.log("socket closed.", 1)
         except:
             self.log("socket could not be shut down and closed:\n"+traceback.format_exc(), 1)
         

@@ -14,6 +14,7 @@ def mumbleTextMessageCallback(sender, message):
     console.sendTextMessage(line)
     irc.sendTextMessage(line)
     if(message == 'gtfo'):
+        mumble.sendTextMessage("KAY CU")
         mumble.stop()
 
 def ircTextMessageCallback(sender, message):
@@ -21,6 +22,7 @@ def ircTextMessageCallback(sender, message):
     console.sendTextMessage(line)
     mumble.sendTextMessage(line)
     if (message == 'gtfo'):
+        irc.sendTextMessage("KAY CU")
         irc.stop()
 
 def consoleTextMessageCallback(sender, message):
@@ -66,7 +68,7 @@ def main():
 
     # create server connections
     mumble = MumbleConnection.MumbleConnection("wue.ensslin.cc", 1337, "Neger", "sftbot", "robot_enrichment_center", loglevel)
-    irc = IRCConnection.IRCConnection("irc.freenode.net", 6667, "sftbot", "sftclan", "utf-8", loglevel)
+    irc = IRCConnection.IRCConnection("irc.freenode.net", 6667, "sftbot", "sftclan", "utf-8", 4)
     console = Console.Console("utf-8", loglevel)
 
     # register text callback functions
