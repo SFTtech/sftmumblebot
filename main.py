@@ -64,11 +64,11 @@ def main():
     global irc
     global console
 
-    loglevel = 1
+    loglevel = 3
 
     # create server connections
-    mumble = MumbleConnection.MumbleConnection("wue.ensslin.cc", 1337, "Neger", "sftbot", "robot_enrichment_center", loglevel)
-    irc = IRCConnection.IRCConnection("irc.freenode.net", 6667, "sftbot", "sftclan", "utf-8", loglevel)
+    mumble = MumbleConnection.MumbleConnection("wue.ensslin.cc", 1337, "sftbot", "robot_enrichment_center", "Neger", "mumblebot", loglevel)
+    irc = IRCConnection.IRCConnection("irc.freenode.net", 6667, "sftbot", "sftclan", "utf-8", "ircbot", loglevel)
     console = Console.Console("utf-8", loglevel)
 
     # register text callback functions

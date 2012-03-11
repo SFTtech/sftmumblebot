@@ -1,24 +1,15 @@
+import AbstractConnection
+import sys
 import socket
-import ssl
-import platform
-import struct
-import thread
-import threading
-import binascii
-import time
-import traceback
+import string
 
-import Mumble_pb2
-
-class MumbleConnection:
-    # some global configuration variables set by the constructor
-    _socket = None
+class MumbleConnection(AbstractConnection):
+    # global configuration variables set by the constructor.
     _hostname = None
     _port = None
-    _password = None
-    _nickname = None    
+    _nickname = None
     _channel = None
-    _loglevel = 0
+    _password = None
 
     # lookup table required for getting message type Ids from message types
     _messageLookupMessage = {
@@ -59,278 +50,159 @@ class MumbleConnection:
 
     # the bot's session and channel id
     _session = None
-    _channelId = None
 
-    #the mutex used when sending packets.
-    _sendingLock = None
-
-    #a list of all callback functions that will be invoked when a text message is received.
-    _textCallback = []
-    #a list of all callback functions that will be invoked when the connection is established.
-    _connectionEstablishedCallback = []
-    #a list of all callback functions that will be invoked when the connection is lost.
-    _connectionLostCallback = []
-    #a list of all callback functions that will be invoked when a conneciton attempt fails.
-    _connectionFailedCallback = []
-
-    #stores if we're currently connected to the server.
-    _connected = False
-
-    def log(self, message, level):
-        if(self._loglevel >= level):
-            print(message)
-
-    def __init__(self, hostname, port, password, nickname, channel, loglevel):
-        # normally we would check the parameters for plausibility, but we're too lazy. we trust them to be well-formed
+    # call the superconstructor and set global configuration variables.
+    def __init__(self, hostname, port, nickname, channel, password, name, loglevel):
+        super(IRCConnection,self).__init__(name, loglevel)
         self._hostname = hostname
         self._port = port
-        self._password = password
         self._nickname = nickname
         self._channel = channel
-        self._loglevel = loglevel
-        self._connected = False
-
+        self._password = password
         # build the message lookup number table
         for i in self._messageLookupMessage.keys():
             self._messageLookupNumber[self._messageLookupMessage[i]] = i
 
-        # init mutex for sending
-        self._sendingLock = threading.Lock()
+    # the (SSL) socket that will be used for communication with the mumble server.
+    _socket = None
 
-    def start(self):
-        thread.start_new_thread(self.run, ())
-
-    def stop(self):
-        self._connected = False
-
-    def run(self):
-        # if we're already connected, abort
-        if(self._connected):
-           return
-        
-        # now, we gschichtl a socket
+    # open the socket and return true. don't catch exceptions, since the run() wrapper will do that.
+    def _openConnection(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            s.connect((self._hostname, self._port))
-            # ssl voodoo
-            self._socket = ssl.wrap_socket(s)
-        except:
-            self.log("couldn't establish ssl connection to host " + self._hostname + " port " + str(self._port), 0)
-            # invoke the connectionFailed callback functions
-            for f in self._connectionFailedCallback:
-                f()
-            return
+        s.connect((self._hostname, self._port))
+        self._socket = ssl.wrap_socket(s)
+        return True
 
-        # send version package
+    # send initial packages (version and auth).
+    def _initConnection(self):
+        # send version package.
         pbMess = Mumble_pb2.Version()
         pbMess.release = "1.2.0"
         pbMess.version = 66048
         pbMess.os = platform.system()
         pbMess.os_version = "mumblebot lol"
-        if not self.packageAndSend(pbMess):
-            self.log("couldn't send version packet, wtf?!", 0)
-            # invoke the connectionFailed callback functions
-            for f in self._connectionFailedCallback:
-                f()
-            return
-
-        # send auth package
+        if not self._sendMessage(pbMess):
+            raise Exception("couldn't send version package", 0)
+        # send auth package.
         pbMess = Mumble_pb2.Authenticate()
         pbMess.username = self._nickname
         if self._password != None:
             pbMess.password = self._password
-
-        if not self.packageAndSend(pbMess):
-            self.log("couldn't send auth packet, wtf?!", 0)
-            # invoke the connectionFailed callback functions
-            for f in self._connectionFailedCallback:
-                f()
-            return
-
-        # we can now consider ourselves connected.
-        self._connected = True
-
-        # start the ping loop
-        thread.start_new_thread(self.pingLoop, ())
-
-        # invoke the connectionEstablished callback functions
-        for f in self._connectionEstablishedCallback:
-            f()
-
-        # start the listening loop
-        try:
-            self.listeningLoop()
-        except:
-            self.log("exception in mumbleConnection listeningLoop:\n"+traceback.format_exc(), 0)
-        self._connected = False
-        self._channelId = None
-        self._session = None
-        try:
-            self._socket.shutdown(socket.SHUT_RDWR)            
-            self._socket.close()
-        except:
-            self.log("socket could not be shut down and closed:\n"+traceback.format_exc(), 1)
-
-        # invoke the connectionLost callback functions
-        for f in self._connectionLostCallback:
-            f()
-
-    def sendTextMessage(self, text):
-        if not self._connected:
-            self.log("warning: can't send text message since the connection is not established", 1)
-            return False
-
-        if not self._session:
-            self.log("warning: can't send text message since we don't have a valid session id", 1)
-            return False
-
-        if not self._channelId:
-            self.log("warning: can't send text message since we've not joined a channel yet", 1)
-            return False
-
-        pbMess = Mumble_pb2.TextMessage()
-        pbMess.session.append(self._session)
-        pbMess.channel_id.append(self._channelId)
-        try:
-            pbMess.message = text 
-        except:
-            self.log("warning: can't send text message (protobuf does not accept unicode-coded message):\n" + traceback.format_exc(), 1)
-            return False
-        self.log("sending text message: "+text, 2)
-        if not self.packageAndSend(pbMess):
-            self.log("warning: failed to send text message", 1)
-            return False
-        else:
-            return True
-
-    def joinChannel(self, channel):
-        if not self._session:
-            self.log("warning: can't join channel since we don't have a valid session id", 1)
-            return False
-
-        try:
-            cid=self._channelIds[channel]
-        except:
-            self.log("warning: the channel id for "+channel+" could not be looked up", 1)
-            return False
-        self.log("sending packet to join channel "+channel+" (id "+str(cid)+")", 2)
-        pbMess = Mumble_pb2.UserState()
-        pbMess.session = self._session 
-        pbMess.channel_id = cid
-        if not self.packageAndSend(pbMess):
-            self.log("warning: failed to send join package", 1)
-            return False
-        self._channelId = cid
+        if not self._sendMessage(pbMess):
+            raise Exception("couldn't send auth package", 0)
+        # great success.
         return True
 
-    def pingLoop(self):
-        while self._connected:
-            pbMess = Mumble_pb2.Ping()
-            if not self.packageAndSend(pbMess):
-                self.log("warning: failed to send ping package", 1)    
-            time.sleep(10)
-  
-    def listeningLoop(self):
-        while self._connected:
-            #receive the 6-byte packet header
+    # post-connect, start the ping loop. we can not consider ourselves connected yet.
+    def _postConnect(self):
+        thread.start_new_thread(self.pingLoop, ())
+        return True
+
+    # close the socket.
+    def _closeConnection(self):
+        self._channelId = None
+        self._session = None
+        self._socket.shutdown(socket.SHUT_RDWR)
+        self._socket.close()
+        return True
+
+    # the read buffer, which contains all currently read, but uninterpreted data.
+    _readBuffer = ""
+
+    # read and interpret data from socket in this method.
+    def _listen(self):
+        header = self._socket.recv(6)
+        (mid, size) = struct.unpack(">HI", header)
+        data = self._socket.recv(size)
+
+        # look up the message type and invoke the message type's constructor.
+        try:
+            messagetype = self._messageLookupNumber[mid]
+            pbMess = messagetype()
+        except:
+            self._log("unknown package id: " + str(mid), 1)
+            return True
+        
+        # parse the message.
+        try:
+            pbMess.ParseFromString(data)
+        except:
+            self._log("message could not be parsed corerctly, message type: "+messagetype.__name__, 1)
+            return True
+
+        # handle the message.
+        if messagetype == Mumble_pb2.ServerSync:
+            self._log("server sync package received. session=" + str(pbMess.session), 1)
+            self._session = message.session
+            self.joinChannel(self._channel)
+        elif messagetype == Mumble_pb2.ChannelState:
+            self._log("channel state package received", 2)
+            if(message.name):
+                self._log("channel " + message.name + " has id " + str(message.channel_id), 2)
+                self._channelIds[message.name] = message.channel_id
+        elif messagetype == Mumble_pb2.TextMessage:
             try:
-                header = self._socket.recv(6)
+                sender = self._users[message.actor]
             except:
-                self.log("error: can't read header of next package from socket", 0)
-                break
+                sender = "unknown"
+                self._log("unknown text message sender id: " + str(message.actor), 3)
+            self._log("text message received, sender: " + sender, 2)
+            self._invokeTextCallback(sender, message.message)
+        elif messagetype == Mumble_pb2.UserState:
+            self.log("user state package received.")
+            if(message.name and message.session):
+                self._users[message.session] = message.name
+                self._userIds[message.name] = message.session
+                self.log("user " + message.name + " has id " + str(message.session))
+        else:
+            self.log("unhandeled package received: " + messagetype.__name__ + ", " + str(size) + " bytes", 2)
 
-            #read the 6-byte packet header (split it to message id, message size)
-            try:
-                (mid, size) = struct.unpack(">HI", header)
-            except:
-                self.log("error: unpacking of header struct failed. struct content: "+binascii.hexlify(data), 0)
-                break
-
-            #receive the packet body
-            try:
-                data=self._socket.recv(size)
-            except:
-                self.log("error: failed to read body of package ("+str(size)+" bytes) from socket", 0)
-                break
-
-            #look up the message type
-            try:
-                messagetype=self._messageLookupNumber[mid]
-            except:
-                messagetype=None
-                self.log("warning: unknown package (id "+str(mid)+", "+str(size)+" byte) received", 2)
-                continue
-
-            #create message parser
-            try:
-                message = messagetype()
-            except:
-                self.log("warning: message parser couldn't be initialized for message type "+messagetype.__name__, 1)
-                continue
-
-            #parse the message
-            try:
-                message.ParseFromString(data)
-            except:
-                self.log("warning: message could not be parsed correctly, message type: "+messagetype.__name__+", message size: "+str(size)+" byte", 2)
-                continue
-
-            #check what kind of gschicht has been received
-            if messagetype == Mumble_pb2.ServerSync:
-                self.log("server sync package received. setting session to "+str(message.session),1)
-                self._session = message.session
-                self.joinChannel(self._channel)
-            elif messagetype == Mumble_pb2.ChannelState:
-                self.log("channelState package received.", 2)
-                if(message.name):
-                    self.log("\tchannel "+message.name+" has Id "+str(message.channel_id),2)
-                    self._channelIds[message.name]=message.channel_id
-            elif messagetype == Mumble_pb2.TextMessage:
-                try:
-                    sender = self._users[message.actor]
-                except:
-                    sender = "unknown"
-                    self.log("\tunknown sender id "+message.actor+" for text message",1)
-                self.log("text message received", 2)
-                msg = message.message 
-                for f in self._textCallback:
-                    f(sender, message.message)
-            elif messagetype == Mumble_pb2.UserState:
-                if(message.name and message.session):
-                    self._users[message.session]=message.name
-                    self._userIds[message.name]=message.session
-                    self.log("userState package received. user "+message.name+" has session "+str(message.session), 2)
-                else:
-                    self.log("userState package with unknown content received.", 2)
-            else:
-                self.log(messagetype.__name__+" package ("+str(size)+" byte) received, but not handled", 3)
-
-    def registerTextCallback(self, function):
-        self._textCallback.append(function)
-
-    def registerConnectionEstablishedCallback(self, function):
-        self._connectionEstablishedCallback.append(function)
-
-    def registerConnectionLostCallback(self, function):
-        self._connectionLostCallback.append(function)
-
-    def registerConnectionFailedCallback(self, function):
-        self._connectionFailedCallback.append(function)
-
-    def packageAndSend(self, message):
+    # send the given line via the socket. don't catch any exceptions.
+    def _sendMessageUnsafe(self, message):
         stringMessage = message.SerializeToString()
         length = len(stringMessage)
         packedMessage = struct.pack(">HI", self._messageLookupMessage[type(message)], length) + stringMessage
-        self._sendingLock.acquire()
-        success = True
+        while len(packedMessage) > 0:
+            sent = self._socket.send(packedMessage)
+            if sent < 0:
+                raise Exception("could not send message")
+            packedMessage = packedMessage[sent:]
+        return True
+
+    # pass the given line to _sendMessage, encoded as a PRIVMSG to #self._channel.
+    def _sendTextMessageUnsafe(self, message):
+        pbMess = Mumble_pb2.TextMessage()
+        pbMess.session.append(self._session)
+        pbMess.channel_id.append(self._channelId)
+        pbMess.message = message
+        self._log("sending text message: " + message, 2)
+        return self._sendMessage(pbMess):
+
+    def _pingLoop(self):
+        while self._connected:
+            pbMess = Mumble.pb2_Ping()
+            if not self._sendMessage(pbMess):
+                self._log("failed to send ping message", 1)
+            time.sleep(10)
+
+    def _joinChannel(self, channel):
+        if not self._session:
+            self._log("can't join channel since we don't have a valid session id", 1)
+            return False
+
         try:
-            # synchronized gschichtn
-            while len(packedMessage) > 0:
-                sent = self._socket.send(packedMessage)
-                if sent < 0:
-                    success = False
-                    break
-                packedMessage = packedMessage[sent:]
-        finally:
-            self._sendingLock.release()
-            return success
+            cid = self._channelIds[channel]
+        except:
+            self._log("the channel id for "+channel+" could not be resolved. can't join channel.", 1)
+            return False
+        self._log("sending package to join channel " + channel + " (id " + str(cid) + ")", 2)
+
+        pbMess = Mumble_pb2.UserState()
+        pbMess.session = self._session
+        pbMess.channel_id = cid
+        if not self.packageAndSend(pbMess):
+            self._log("failed to send join package", 1)
+            return False
+
+        self._channelId = cid
+        self._connectionEstablished()   
