@@ -2,7 +2,7 @@
 import sys
 import MumbleConnection
 import IRCConnection
-import Console
+import ConsoleConnection
 import time
 
 irc = None
@@ -67,9 +67,9 @@ def main():
     loglevel = 3
 
     # create server connections
-    mumble = MumbleConnection.MumbleConnection("wue.ensslin.cc", 1337, "sftbot", "robot_enrichment_center", "Neger", "mumblebot", loglevel)
-    irc = IRCConnection.IRCConnection("irc.freenode.net", 6667, "sftbot", "sftclan", "utf-8", "ircbot", loglevel)
-    console = Console.Console("utf-8", loglevel)
+    mumble = MumbleConnection.MumbleConnection("wue.ensslin.cc", 1337, "sftbot", "robot_enrichment_center", "Neger", "mumble", loglevel)
+    irc = IRCConnection.IRCConnection("irc.freenode.net", 6667, "sftbot", "sftclan", "utf-8", "irc", loglevel)
+    console = ConsoleConnection.ConsoleConnection("utf-8", "console", loglevel)
 
     # register text callback functions
     mumble.registerTextCallback(mumbleTextMessageCallback)
