@@ -3,7 +3,7 @@ import sys
 import socket
 import string
 
-class IRCConnection(AbstractConnection):
+class IRCConnection(AbstractConnection.AbstractConnection):
     # global configuration variables set by the constructor.
     _hostname = None
     _port = None

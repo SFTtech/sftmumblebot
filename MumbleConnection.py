@@ -2,8 +2,14 @@ import AbstractConnection
 import sys
 import socket
 import string
+import Mumble_pb2
+import time
+import ssl
+import platform
+import struct
+import thread
 
-class MumbleConnection(AbstractConnection):
+class MumbleConnection(AbstractConnection.AbstractConnection):
     # global configuration variables set by the constructor.
     _hostname = None
     _port = None
@@ -11,7 +17,7 @@ class MumbleConnection(AbstractConnection):
     _channel = None
     _password = None
 
-    # lookup table required for getting message type Ids from message types
+    # lookup table required for getting message type Ids from message types.
     _messageLookupMessage = {
             Mumble_pb2.Version:0,
             Mumble_pb2.UDPTunnel:1,
@@ -35,31 +41,31 @@ class MumbleConnection(AbstractConnection):
             Mumble_pb2.VoiceTarget:19,
             Mumble_pb2.PermissionQuery:20,
             Mumble_pb2.CodecVersion:21}
-    # lookup table required for getting message types from message type Ids
-    # will be auto-generated from messageLookupMessage during __init__
+    # lookup table required for getting message types from message type Ids.
+    # will be auto-generated from messageLookupMessage during __init__.
     _messageLookupNumber = {}
 
-    # lookup table required for translating channel names to channel Ids
-    # will be auto-generated from channelState messages
+    # lookup table required for translating channel names to channel Ids.
+    # will be auto-generated from channelState messages.
     _channelIds = {}
 
-    # lookup tables required for translating user names to user Ids and vice-versa
-    # will be auto-generated from userState messages
+    # lookup tables required for translating user names to user Ids and vice-versa.
+    # will be auto-generated from userState messages.
     _users = {}
     _userIds = {}
 
-    # the bot's session and channel id
+    # the bot's session and channel id.
     _session = None
 
     # call the superconstructor and set global configuration variables.
     def __init__(self, hostname, port, nickname, channel, password, name, loglevel):
-        super(IRCConnection,self).__init__(name, loglevel)
+        super(MumbleConnection,self).__init__(name, loglevel)
         self._hostname = hostname
         self._port = port
         self._nickname = nickname
         self._channel = channel
         self._password = password
-        # build the message lookup number table
+        # build the message lookup number table.
         for i in self._messageLookupMessage.keys():
             self._messageLookupNumber[self._messageLookupMessage[i]] = i
 
@@ -95,7 +101,7 @@ class MumbleConnection(AbstractConnection):
 
     # post-connect, start the ping loop. we can not consider ourselves connected yet.
     def _postConnect(self):
-        thread.start_new_thread(self.pingLoop, ())
+        thread.start_new_thread(self._pingLoop, ())
         return True
 
     # close the socket.
@@ -124,38 +130,44 @@ class MumbleConnection(AbstractConnection):
             return True
         
         # parse the message.
-        try:
-            pbMess.ParseFromString(data)
-        except:
-            self._log("message could not be parsed corerctly, message type: "+messagetype.__name__, 1)
-            return True
+        if messagetype != Mumble_pb2.UDPTunnel:
+            try:
+                pbMess.ParseFromString(data)
+            except:
+                self._log("message could not be parsed corerctly, message type: "+messagetype.__name__, 1)
+                return True
 
         # handle the message.
         if messagetype == Mumble_pb2.ServerSync:
             self._log("server sync package received. session=" + str(pbMess.session), 1)
-            self._session = message.session
-            self.joinChannel(self._channel)
+            self._session = pbMess.session
+            self._joinChannel(self._channel)
         elif messagetype == Mumble_pb2.ChannelState:
             self._log("channel state package received", 2)
-            if(message.name):
-                self._log("channel " + message.name + " has id " + str(message.channel_id), 2)
-                self._channelIds[message.name] = message.channel_id
+            if(pbMess.name):
+                self._log("channel " + pbMess.name + " has id " + str(pbMess.channel_id), 2)
+                self._channelIds[pbMess.name] = pbMess.channel_id
         elif messagetype == Mumble_pb2.TextMessage:
             try:
-                sender = self._users[message.actor]
+                sender = self._users[pbMess.actor]
             except:
                 sender = "unknown"
-                self._log("unknown text message sender id: " + str(message.actor), 3)
+                self._log("unknown text message sender id: " + str(pbMess.actor), 3)
             self._log("text message received, sender: " + sender, 2)
-            self._invokeTextCallback(sender, message.message)
+            self._invokeTextCallback(sender, pbMess.message)
         elif messagetype == Mumble_pb2.UserState:
-            self.log("user state package received.")
-            if(message.name and message.session):
-                self._users[message.session] = message.name
-                self._userIds[message.name] = message.session
-                self.log("user " + message.name + " has id " + str(message.session))
+            self._log("user state package received.", 2)
+            if(pbMess.name and pbMess.session):
+                self._users[pbMess.session] = pbMess.name
+                self._userIds[pbMess.name] = pbMess.session
+                self._log("user " + pbMess.name + " has id " + str(pbMess.session), 2)
+        elif messagetype == Mumble_pb2.UDPTunnel:
+            self._log("won't analyze your voice packages, sorry", 3)
+        elif messagetype == Mumble_pb2.Ping:
+            self._log("ping answer received", 3)
         else:
-            self.log("unhandeled package received: " + messagetype.__name__ + ", " + str(size) + " bytes", 2)
+            self._log("unhandeled package received: " + messagetype.__name__ + ", " + str(size) + " bytes", 2)
+        return True
 
     # send the given line via the socket. don't catch any exceptions.
     def _sendMessageUnsafe(self, message):
@@ -176,11 +188,11 @@ class MumbleConnection(AbstractConnection):
         pbMess.channel_id.append(self._channelId)
         pbMess.message = message
         self._log("sending text message: " + message, 2)
-        return self._sendMessage(pbMess):
+        return self._sendMessage(pbMess)
 
     def _pingLoop(self):
         while self._connected:
-            pbMess = Mumble.pb2_Ping()
+            pbMess = Mumble_pb2.Ping()
             if not self._sendMessage(pbMess):
                 self._log("failed to send ping message", 1)
             time.sleep(10)
@@ -200,7 +212,7 @@ class MumbleConnection(AbstractConnection):
         pbMess = Mumble_pb2.UserState()
         pbMess.session = self._session
         pbMess.channel_id = cid
-        if not self.packageAndSend(pbMess):
+        if not self._sendMessage(pbMess):
             self._log("failed to send join package", 1)
             return False
 

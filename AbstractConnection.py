@@ -139,7 +139,7 @@ class AbstractConnection(object):
             if not self._openConnection():
                 raise Exception("unknown error")
         except:
-            self._log("connection could not be opened:\n" + sys.exc_info()[0], 0)
+            self._log("connection could not be opened:\n" + str(sys.exc_info()[0]), 0)
             self._log(traceback.format_exc(), 1)
             self._invokeConnectionFailedCallback()
             return
@@ -147,10 +147,10 @@ class AbstractConnection(object):
             self._log("connection successfully opened", 2)
 
         try:
-            if not self._initConnections():
+            if not self._initConnection():
                 raise Exception("unknown error")
         except:
-            self._log("initial packages could not be sent:\n" + sys.exc_info()[0], 0)
+            self._log("initial packages could not be sent:\n" + str(sys.exc_info()[0]), 0)
             self._log(traceback.format_exc(), 1)
             self._invokeConnectionFailedCallback()
             return
@@ -172,7 +172,7 @@ class AbstractConnection(object):
                 if not self._listen():
                     raise Exception("listening error")
         except:
-            self._log("connection terminated with an error:\n" + sys.exc_info()[0], 0)
+            self._log("connection terminated with an error:\n" + str(sys.exc_info()[0]), 0)
             self._log(traceback.format_exc(), 1)
         else:
             self._log("connection terminated without error", 1)            
@@ -185,7 +185,7 @@ class AbstractConnection(object):
             if not self._closeConnection():
                 raise Exception("unknown error")
         except:
-            self._log("socket could not be closed:\n" + sys.exc_info()[0], 1)
+            self._log("socket could not be closed:\n" + str(sys.exc_info()[0]), 1)
             self._log(traceback.format_exc(), 2)
         else:
             self._log("socket successfully closed", 2)
@@ -210,9 +210,10 @@ class AbstractConnection(object):
             if not self._sendMessageUnsafe(message):
                 raise Exception("unknown error")
         except:
-            self._log("could not send message: " + sys_exc_info()[0], 1)
+            self._log("could not send message: " + str(sys.exc_info()[0]), 1)
             self._log(traceback.format_exc(), 2)
         self._sendingLock.release()
+        return True
 
     def sendTextMessage(self, message):
         try:
@@ -221,5 +222,5 @@ class AbstractConnection(object):
             if not self._sendTextMessageUnsafe(message):
                 raise Exception("unknown error")
         except:
-            self._log("could not send text message: " + sys_exc_info()[0], 1)
+            self._log("could not send text message: " + str(sys.exc_info()[0]), 1)
             self._log(traceback.format_exc(), 2)
