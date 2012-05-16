@@ -61,7 +61,7 @@ class ConsoleConnection(AbstractConnection.AbstractConnection):
 
     # send the given line to stdout.
     def _sendMessageUnsafe(self, message):
-        print(text.encode(self._encoding, errors='ignore'))
+        print(message.encode(self._encoding, errors='ignore'))
         return True
 
     # pass the given line to _sendMessage.

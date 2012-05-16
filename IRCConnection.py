@@ -64,6 +64,11 @@ class IRCConnection(AbstractConnection.AbstractConnection):
 
         # process all lines.
         for line in lines:
+            try:
+                iline = line.decode(self._encoding, errors='ignore')
+            except:
+                self._log("received a line which is not valid " + self._encoding + ": " + repr(iline), 1)
+            line = iline
             self._log("rx: "+line, 3)
             # split the line up at spaces
             line = line.rstrip().split(' ', 3)
@@ -71,7 +76,7 @@ class IRCConnection(AbstractConnection.AbstractConnection):
             # check if the line contains a ping message (PING)
             if(len(line) >= 2):
                 if(line[0] == "PING"):
-                    self._sendRawString("PONG " + line[1])
+                    self._sendMessage("PONG " + line[1])
 
             # check if the line contains a private message (PRIVMSG)
             if(len(line) >= 4):

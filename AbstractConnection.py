@@ -198,7 +198,11 @@ class AbstractConnection(object):
     def _log(self, message, level):
         if(self._loglevel >= level):
             for line in message.split('\n'):
-                print("(" + str(level) + ") " + self._name + ": " + line.encode('utf-8'))
+                try:
+                    oline = line.encode('utf-8', errors='ignore')
+                except:
+                    oline = repr(line)
+                print("(" + str(level) + ") " + self._name + ": " + oline)
 
     # sends a message, taking care of thread-safety and error handling.
     # calls _sendUnprotectedMessage to do the actual job.
