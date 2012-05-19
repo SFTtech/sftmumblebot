@@ -162,7 +162,7 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
                 self._userIds[pbMess.name] = pbMess.session
                 self._log("user " + pbMess.name + " has id " + str(pbMess.session), 2)
         elif messagetype == Mumble_pb2.UDPTunnel:
-            self._log("won't analyze your voice packages, sorry", 3)
+            self._log("won't analyze your voice packages, sorry", 4)
         elif messagetype == Mumble_pb2.Ping:
             self._log("ping answer received", 3)
         else:
