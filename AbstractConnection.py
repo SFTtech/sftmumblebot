@@ -17,6 +17,11 @@ class AbstractConnection(object):
         self._established = False
         self._name = name
 
+        self._textCallback = []
+        self._connectionEstablishedCallback = []
+        self._connectionLostCallback = []
+        self._connectionFailedCallback = []
+
     # do stuff like opening sockets/files.
     # return true if and only if the connection was successfully opened.
     # if an error occured, eighter return false, or raise an exception that contains a detailed description.
