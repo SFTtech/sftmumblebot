@@ -41,7 +41,6 @@ class IRCConnection(AbstractConnection.AbstractConnection):
 
     # post-connect, call _connectionEstablished() and return true.
     def _postConnect(self):
-        self._connectionEstablished()
         return True
 
     # close the socket.
@@ -82,6 +81,10 @@ class IRCConnection(AbstractConnection.AbstractConnection):
             if(len(line) >= 4):
                 if(line[1] == "PRIVMSG"):
                     self._invokeTextCallback(line[0].split('!')[0].lstrip(': '), line[3].lstrip(': '))
+                    
+            if(len(line) >= 3):
+                if(line[0] == ":ChanServ!ChanServ@services." and line[1] == "PART" and line[2] == "#sftclan"):
+                    self._connectionEstablished();
 
         return True
 
