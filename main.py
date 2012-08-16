@@ -67,8 +67,8 @@ def main():
     loglevel = 3
 
     # create server connections
-    mumble = MumbleConnection.MumbleConnection("wue.ensslin.cc",  64738 , "sftbot", "lol", "sft", "mumble", loglevel)
-    irc = IRCConnection.IRCConnection("irc.freenode.net", 6667, "sftbot", "sftclan", "utf-8", "irc", loglevel)
+    mumble = MumbleConnection.MumbleConnection("wue.ensslin.cc",  64738 , "mumblebot", "sft", "sft", "mumble", loglevel)
+    irc = IRCConnection.IRCConnection("irc.freenode.net", 6667, "mumblebot", "sftclan", "utf-8", "irc", loglevel)
     console = ConsoleConnection.ConsoleConnection("utf-8", "console", loglevel)
 
     # register text callback functions
