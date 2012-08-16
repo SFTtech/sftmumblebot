@@ -60,7 +60,7 @@ class IRCConnection(AbstractConnection.AbstractConnection):
         lines = self._readBuffer.split('\n')
         # move the last (unfinished) line back into the buffer.
         self._readBuffer = lines.pop()
-
+	
         # process all lines.
         for line in lines:
             try:
@@ -82,8 +82,7 @@ class IRCConnection(AbstractConnection.AbstractConnection):
                 if(line[1] == "PRIVMSG"):
                     self._invokeTextCallback(line[0].split('!')[0].lstrip(': '), line[3].lstrip(': '))
                     
-            if(len(line) >= 3):
-                if(line[0] == ":ChanServ!ChanServ@services." and line[1] == "PART" and line[2] == "#sftclan"):
+                if(line[3] == "#sftclan :End of /NAMES list."):
                     self._connectionEstablished();
 
         return True

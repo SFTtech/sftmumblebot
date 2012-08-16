@@ -6,3 +6,5 @@ __pycache__
 .pydevproject
 core
 irc_join_successfull_message
+log
+nohup.out
