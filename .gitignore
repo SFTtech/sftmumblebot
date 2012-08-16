@@ -2,3 +2,7 @@
 __pycache__
 *.pyc
 *~
+.project
+.pydevproject
+core
+irc_join_successfull_message
