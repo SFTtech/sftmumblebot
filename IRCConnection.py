@@ -2,6 +2,7 @@ import AbstractConnection
 import sys
 import socket
 import string
+import re
 
 class IRCConnection(AbstractConnection.AbstractConnection):
     # global configuration variables set by the constructor.
@@ -95,4 +96,8 @@ class IRCConnection(AbstractConnection.AbstractConnection):
 
     # pass the given line to _sendMessage, encoded as a PRIVMSG to #self._channel.
     def _sendTextMessageUnsafe(self, message):
+        #strip html foo from message via re
+        endloesung = re.compile("<(/)?[^>]*>")
+        message = endloesung.sub(repl="", string=message)
+
         return self._sendMessage("PRIVMSG #" + self._channel + " :" + message)
