@@ -24,6 +24,9 @@ class IRCConnection(AbstractConnection.AbstractConnection):
     # the socket that will be used for communication with the IRC server.
     _socket = None
 
+    # compile the regex used in SendTextMessageUnsafe function below
+    _endloesung = re.compile("<(/)?[^>]*>")
+
     # open the socket and return true. don't catch exceptions, since the run() wrapper will do that.
     def _openConnection(self):
         self._socket = socket.socket()
@@ -96,8 +99,7 @@ class IRCConnection(AbstractConnection.AbstractConnection):
 
     # pass the given line to _sendMessage, encoded as a PRIVMSG to #self._channel.
     def _sendTextMessageUnsafe(self, message):
-        #strip html foo from message via re
-        endloesung = re.compile("<(/)?[^>]*>")
-        message = endloesung.sub(repl="", string=message)
+        #strip html foo from message via Endloesungs-re
+        message = self._endloesung.sub(repl="", string=message)
 
         return self._sendMessage("PRIVMSG #" + self._channel + " :" + message)
