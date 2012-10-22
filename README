@@ -1,0 +1,12 @@
+
+
+This is [SFT]'s mumble/irc bot.
+
+use it as a text bridge between a irc and mumble server.
+
+
+Requirements:
+
+python2
+protobuf-python
+

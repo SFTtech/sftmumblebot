@@ -1,0 +1,22 @@
+
+# this is the default config file for the sftbot.
+#
+
+[mumble]
+server=yourmother.ie
+port=64738	;this is mumble-standard
+nickname="sftbot"
+channel="root"
+password="ultrasecret"
+
+loglevel=3
+
+
+[irc]
+server=yourfather.ie
+port=6667      ;this is irc-standard
+nickname="sftbot"
+channel="pureawesomeness"
+encoding="utf-8"
+
+loglevel=3
