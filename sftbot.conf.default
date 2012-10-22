@@ -3,20 +3,20 @@
 #
 
 [mumble]
-server=yourmother.ie
-port=64738	;this is mumble-standard
-nickname="sftbot"
-channel="root"
-password="ultrasecret"
+server=yourmother.com
+port=64738               ;this is mumble-standard
+nickname=sftbot
+channel=channelname
+password=orleaveitempty
 
 loglevel=3
 
 
 [irc]
-server=yourfather.ie
-port=6667      ;this is irc-standard
-nickname="sftbot"
-channel="pureawesomeness"
-encoding="utf-8"
+server=yourfather.com
+port=6667                ;this is irc-standard
+nickname=sftbot
+channel=channelname
+encoding=utf-8
 
 loglevel=3

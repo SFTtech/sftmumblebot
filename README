@@ -5,7 +5,13 @@ This is [SFT]'s mumble/irc bot.
 use it as a text bridge between a irc and mumble server.
 
 
-Requirements:
+
+copy sftbot.conf.default to sftbot.conf
+and edit settings as required.
+
+
+
+Program dependencies:
 
 python2
 protobuf-python
