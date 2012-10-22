@@ -5,6 +5,8 @@ import IRCConnection
 import ConsoleConnection
 import time
 import ConfigParser
+import re
+import urllib
 
 irc = None
 mumble = None
@@ -60,7 +62,20 @@ def ircConnectionFailed():
 	mumble.sendTextMessage(line)
 	time.sleep(15)
 	irc.start()
-
+	
+def resolveUrls(sender, message):
+	# because fuck you and your code style guidelines, that's why!
+	url = re.match(""^((([hH][tT][tT][pP][sS]?|[fF][tT][pP])\:\/\/)?([\w\.\-]+(\:[\w\.\&%\$\-]+)*@)?((([^\s\(\)\<\>\\\"\.\[\]\,@;:]+)(\.[^\s\(\)\<\>\\\"\.\[\]\,@;:]+)*(\.[a-zA-Z]{2,4}))|((([01]?\d{1,2}|2[0-4]\d|25[0-5])\.){3}([01]?\d{1,2}|2[0-4]\d|25[0-5])))(\b\:(6553[0-5]|655[0-2]\d|65[0-4]\d{2}|6[0-4]\d{3}|[1-5]\d{4}|[1-9]\d{0,3}|0)\b)?((\/[^\/][\w\.\,\?\'\\\/\+&%\$#\=~_\-@]*)*[^\.\,\?\"\'\(\)\[\]!;<>{}\s\x7F-\xFF])?)$", message)
+	if url != None:
+		# do some real work
+		html = urllib.urlopen(url.group(0))
+		title = html.read().split('<title>')[1].split('</title>')[0].strip()
+		line = "page title = %s" % (title)
+		
+		#send line
+		console.send(line)
+		mumble.send(line)
+		irc.send(line)
 
 def main():
 	global mumble
@@ -95,6 +110,8 @@ def main():
 			console = ConsoleConnection.ConsoleConnection("utf-8", "console", loglevel)
 
 			# register text callback functions
+			mumble.registerTextCallback(resolveUrls)
+			irc.registerTextCallback(resolveUrls)
 			mumble.registerTextCallback(mumbleTextMessageCallback)
 			irc.registerTextCallback(ircTextMessageCallback)
 			console.registerTextCallback(consoleTextMessageCallback)
