@@ -8,3 +8,4 @@ core
 irc_join_successfull_message
 log
 nohup.out
+sftbot.conf
