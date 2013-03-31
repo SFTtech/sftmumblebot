@@ -82,7 +82,7 @@ class IRCConnection(AbstractConnection.AbstractConnection):
                 if(line[1] == "PRIVMSG"):
                     self._invokeTextCallback(line[0].split('!')[0].lstrip(': '), line[3].lstrip(': '))
                     
-                if(line[3] == "#sftclan :End of /NAMES list."):
+                if(line[3] == "#" + self._channel + " :End of /NAMES list."):
                     self._connectionEstablished();
 
         return True
