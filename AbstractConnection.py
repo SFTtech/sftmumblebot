@@ -11,15 +11,24 @@ class AbstractConnection(object):
 	# job of the methods invoked by run().
 	# you should overload this method, but call the superconstructor in the first line.
 	def __init__(self, name, loglevel):
+		# the mutex for sending raw data:
 		self._sendingLock = threading.Lock()
+		#loglevel, the captain obvious among the attributes
 		self._loglevel = loglevel
+		# this variable stores if we're currently connected, and all neccesary initial packages have been sent:
 		self._connected = False
+		# this variable stores if the conneciton is fully established, allowing text messages to be sent:
 		self._established = False
+		# the name of the bot, as it appears in the logs:
 		self._name = name
 
+		#a list of all callback functions that will be invoked when a text message is received.
 		self._textCallback = []
+		#a list of all callback functions that will be invoked when the connection is established:
 		self._connectionEstablishedCallback = []
+		#a list of all callback functions that will be invoked when the connection is lost:
 		self._connectionLostCallback = []
+		#a list of all callback functions that will be invoked when a connection attempt fails:
 		self._connectionFailedCallback = []
 
 	# do stuff like opening sockets/files.
@@ -68,26 +77,6 @@ class AbstractConnection(object):
 	# you need to overload this method.
 	def _sendTextMessageUnsafe(self, message):
 		raise notImplementedError("sendTextMessage() not implemented in abstract class AbstractConnection")
-
-	# the mutex for sending raw data
-	_sendingLock = None
-
-	# this variable stores if we're currently connected, and all neccesary initial packages have been sent
-	_connected = False
-	# this variable stores if the conneciton is fully established, allowing text messages to be sent
-	_established = False
-
-	# the name of the bot, as it appears in the logs.
-	_name = None
-
-	#a list of all callback functions that will be invoked when a text message is received.
-	_textCallback = []
-	#a list of all callback functions that will be invoked when the connection is established.
-	_connectionEstablishedCallback = []
-	#a list of all callback functions that will be invoked when the connection is lost.
-	_connectionLostCallback = []
-	#a list of all callback functions that will be invoked when a connection attempt fails.
-	_connectionFailedCallback = []
 
 	def registerTextCallback(self, function):
 		self._textCallback.append(function)
