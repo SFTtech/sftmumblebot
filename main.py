@@ -80,7 +80,7 @@ def main():
 			mblchannel = cparser.get('mumble', 'channel')
 			mblpassword = cparser.get('mumble', 'password')
 			mblloglevel = int(cparser.get('mumble', 'loglevel'))
-			
+
 			ircservername = cparser.get('irc', 'server')
 			ircport = int(cparser.get('irc', 'port'))
 			ircnick = cparser.get('irc', 'nickname')
