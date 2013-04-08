@@ -72,7 +72,14 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
 	def _openConnection(self):
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		s.connect((self._hostname, self._port))
-		self._socket = ssl.wrap_socket(s)
+		try:
+			self._socket = ssl.wrap_socket(s)
+		except SSLError:
+			try:
+				self._socket = ssl.wrap_socket(s, ssl_version = ssl.PROTOCOL_TLSv1)
+			except SSLError:
+				raise Exception("Error setting up the SSL/TLS socket to murmur.")
+				
 		return True
 
 	# send initial packages (version and auth).
