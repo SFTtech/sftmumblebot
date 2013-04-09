@@ -73,13 +73,14 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		s.connect((self._hostname, self._port))
 		try:
+			self._log("trying python default ssl socket", 3)
 			self._socket = ssl.wrap_socket(s)
-		except SSLError:
+		except ssl.SSLError:
 			try:
+				self._log("python default ssl connection failed, trying TLSv1", 3)
 				self._socket = ssl.wrap_socket(s, ssl_version = ssl.PROTOCOL_TLSv1)
-			except SSLError:
+			except ssl.SSLError:
 				raise Exception("Error setting up the SSL/TLS socket to murmur.")
-				
 		return True
 
 	# send initial packages (version and auth).
@@ -119,7 +120,11 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
 	# read and interpret data from socket in this method.
 	def _listen(self):
 		header = self._socket.recv(6)
-		(mid, size) = struct.unpack(">HI", header)
+		if len(header) == 6:
+			(mid, size) = struct.unpack(">HI", header)
+		else:
+			raise Exception("expected 6 bytes, but got " + str(len(header)))
+
 		data = self._socket.recv(size)
 
 		# look up the message type and invoke the message type's constructor.
