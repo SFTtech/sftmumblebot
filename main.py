@@ -66,17 +66,23 @@ def ircConnectionFailed():
 
 def resolveUrls(sender, message):
 	# because fuck you and your code style guidelines, that's why!
-	url = re.match("""^((([hH][tT][tT][pP][sS]?|[fF][tT][pP])\:\/\/)?([\w\.\-]+(\:[\w\.\&%\$\-]+)*@)?((([^\s\(\)\<\>\\\"\.\[\]\,@;:]+)(\.[^\s\(\)\<\>\\\"\.\[\]\,@;:]+)*(\.[a-zA-Z]{2,4}))|((([01]?\d{1,2}|2[0-4]\d|25[0-5])\.){3}([01]?\d{1,2}|2[0-4]\d|25[0-5])))(\b\:(6553[0-5]|655[0-2]\d|65[0-4]\d{2}|6[0-4]\d{3}|[1-5]\d{4}|[1-9]\d{0,3}|0)\b)?((\/[^\/][\w\.\,\?\'\\\/\+&%\$#\=~_\-@]*)*[^\.\,\?\"\'\(\)\[\]!;<>{}\s\x7F-\xFF])?)$""", message)
-	if url != None:
-		# do some real work
-		html = urllib.urlopen(url.group(0))
-		title = html.read().split('<title>')[1].split('</title>')[0].strip()
-		line = "page title = %s" % (title)
-		
-		#send line
-		console.send(line)
-		mumble.send(line)
-		irc.send(line)
+	baddern = re.compile("^((([hH][tT][tT][pP][sS]?|[fF][tT][pP])\:\/\/)?([\w\.\-]+(\:[\w\.\&%\$\-]+)*@)?((([^\s\(\)\<\>\\\"\.\[\]\,@;:]+)(\.[^\s\(\)\<\>\\\"\.\[\]\,@;:]+)*(\.[a-zA-Z]{2,4}))|((([01]?\d{1,2}|2[0-4]\d|25[0-5])\.){3}([01]?\d{1,2}|2[0-4]\d|25[0-5])))(\b\:(6553[0-5]|655[0-2]\d|65[0-4]\d{2}|6[0-4]\d{3}|[1-5]\d{4}|[1-9]\d{0,3}|0)\b)?((\/[^\/][\w\.\,\?\'\\\/\+&%\$#\=~_\-@]*)*[^\.\,\?\"\'\(\)\[\]!;<>{}\s\x7F-\xFF])?)$")
+	result = baddern.match(message)
+	if result:
+		# open the url in urllib to get it's title
+		try:
+			html = urllib.urlopen(result.group(0))
+			title = html.read().split('<title>')[1].split('</title>')[0].strip()
+			line = "page title = {0}".format(title)
+
+		except IOError:
+			line = "failed to connect to webserver"
+
+		#send line to the connections
+		console.sendTextMessage(line)
+		mumble.sendTextMessage(line)
+		irc.sendTextMessage(line)
+
 
 def main():
 	global mumble
