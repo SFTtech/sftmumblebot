@@ -162,10 +162,16 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
 				self._users[pbMess.session] = pbMess.name
 				self._userIds[pbMess.name] = pbMess.session
 				self._log("user " + pbMess.name + " has id " + str(pbMess.session), 2)
-
 			if(pbMess.channel_id != None and pbMess.session == self._session):
 				self._channelId = pbMess.channel_id
 				self._log("I was dragged into another channel. Channle id:" + str(pbMess.channel_id), 2)
+
+		elif messagetype == Mumble_pb2.UserRemove:
+			self._log("Got UserRemove Message", 2)
+			if self._users[pbMess.session] in self._userIds.keys():
+				del self._userIds[self._users[pbMess.session]]
+			if pbMess.session in self._users.keys():
+				del self._users[pbMess.session] 
 
 		elif messagetype == Mumble_pb2.UDPTunnel:
 			self._log("won't analyze your voice packages, sorry", 4)

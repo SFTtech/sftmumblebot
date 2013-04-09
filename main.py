@@ -28,6 +28,8 @@ def ircTextMessageCallback(sender, message):
 	if (message == 'gtfo'):
 		irc.sendTextMessage("KAY CU")
 		irc.stop()
+	elif (message == '!users'):
+		irc.sendTextMessage('Mumble users: '+' '.join(mumble._userIds.keys()))
 
 def consoleTextMessageCallback(sender, message):
 	line="console: " + message
