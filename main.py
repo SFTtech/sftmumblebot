@@ -5,6 +5,7 @@ import IRCConnection
 import ConsoleConnection
 import time
 import ConfigParser
+import os.path
 
 irc = None
 mumble = None
@@ -27,6 +28,8 @@ def ircTextMessageCallback(sender, message):
 	if (message == 'gtfo'):
 		irc.sendTextMessage("KAY CU")
 		irc.stop()
+	elif (message == '!users'):
+		irc.sendTextMessage('Mumble users: '+' '.join(mumble._userIds.keys()))
 
 def consoleTextMessageCallback(sender, message):
 	line="console: " + message
@@ -69,53 +72,56 @@ def main():
 
 	loglevel = 3
 
-	try:
-		with open(conffile) as f:
-			cparser = ConfigParser.ConfigParser()
-			cparser.read(conffile)
+	if not os.path.isfile(conffile):
+		raise Exception('configuration file {0} not found or unreadable. fix pls.'.format(conffile))
 
-			mblservername = cparser.get('mumble', 'server')
-			mblport = int(cparser.get('mumble', 'port'))
-			mblnick = cparser.get('mumble', 'nickname')
-			mblchannel = cparser.get('mumble', 'channel')
-			mblpassword = cparser.get('mumble', 'password')
-			mblloglevel = int(cparser.get('mumble', 'loglevel'))
-			
-			ircservername = cparser.get('irc', 'server')
-			ircport = int(cparser.get('irc', 'port'))
-			ircnick = cparser.get('irc', 'nickname')
-			ircchannel = cparser.get('irc', 'channel')
-			ircencoding = cparser.get('irc', 'encoding')
-			ircloglevel = int(cparser.get('irc', 'loglevel'))
+	#create python's configparser and read our configfile
+	cparser = ConfigParser.ConfigParser()
+	cparser.read(conffile)
 
-			# create server connections
-			#hostname, port, nickname, channel, password, name, loglevel
-			mumble = MumbleConnection.MumbleConnection(mblservername, mblport, mblnick, mblchannel, mblpassword, "mumble", mblloglevel)
-			irc = IRCConnection.IRCConnection(ircservername, ircport, ircnick, ircchannel, ircencoding, "irc", ircloglevel)
-			console = ConsoleConnection.ConsoleConnection("utf-8", "console", loglevel)
+	#configuration for the mumble connection
+	mblservername = cparser.get('mumble', 'server')
+	mblport = int(cparser.get('mumble', 'port'))
+	mblnick = cparser.get('mumble', 'nickname')
+	mblchannel = cparser.get('mumble', 'channel')
+	mblpassword = cparser.get('mumble', 'password')
+	mblloglevel = int(cparser.get('mumble', 'loglevel'))
 
-			# register text callback functions
-			mumble.registerTextCallback(mumbleTextMessageCallback)
-			irc.registerTextCallback(ircTextMessageCallback)
-			console.registerTextCallback(consoleTextMessageCallback)
+	#configuration for the IRC connection
+	ircservername = cparser.get('irc', 'server')
+	ircport = int(cparser.get('irc', 'port'))
+	ircnick = cparser.get('irc', 'nickname')
+	ircchannel = cparser.get('irc', 'channel')
+	ircencoding = cparser.get('irc', 'encoding')
+	ircloglevel = int(cparser.get('irc', 'loglevel'))
 
-			# register connection-lost callback functions
-			irc.registerConnectionLostCallback(ircDisconnected)
-			mumble.registerConnectionLostCallback(mumbleDisconnected)
 
-			# register connection-failed callback functions
-			irc.registerConnectionFailedCallback(ircConnectionFailed)
-			mumble.registerConnectionFailedCallback(mumbleConnectionFailed)
+	# create server connections
+	#hostname, port, nickname, channel, password, name, loglevel
+	mumble = MumbleConnection.MumbleConnection(mblservername, mblport, mblnick, mblchannel, mblpassword, "mumble", mblloglevel)
+	irc = IRCConnection.IRCConnection(ircservername, ircport, ircnick, ircchannel, ircencoding, "irc", ircloglevel)
+	console = ConsoleConnection.ConsoleConnection("utf-8", "console", loglevel)
 
-			# start the connections. they will be self-sustaining due to the callback functions
-			mumble.start()
-			irc.start()
+	# register text callback functions
+	mumble.registerTextCallback(mumbleTextMessageCallback)
+	irc.registerTextCallback(ircTextMessageCallback)
+	console.registerTextCallback(consoleTextMessageCallback)
 
-			#use the console as main loop
-			console.run()
+	# register connection-lost callback functions
+	irc.registerConnectionLostCallback(ircDisconnected)
+	mumble.registerConnectionLostCallback(mumbleDisconnected)
 
-	except IOError as e:
-		print 'configuration file {0} not found or unreadable. fix pls.'.format(conffile)
+	# register connection-failed callback functions
+	irc.registerConnectionFailedCallback(ircConnectionFailed)
+	mumble.registerConnectionFailedCallback(mumbleConnectionFailed)
+
+	# start the connections. they will be self-sustaining due to the callback functions
+	mumble.start()
+	irc.start()
+
+	#use the console as main loop
+	console.run()
+
 
 
 if __name__=="__main__":
