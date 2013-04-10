@@ -1,6 +1,8 @@
-
 # this is the default config file for the sftbot.
 #
+
+[general]
+pluginlist = hello
 
 [mumble]
 server=yourmother.com
