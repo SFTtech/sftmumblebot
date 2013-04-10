@@ -7,29 +7,50 @@ import time
 import ConfigParser
 import os.path
 
+plugins = []
 irc = None
 mumble = None
 console = None
 
 conffile = "sftbot.conf"
 
+def handle_plugins(sender, message):
+# don't relay messages already handled by any plugins
+	handled = False
+	result = None
+	global plugins
+	for plugin in plugins:
+		# plugins where command is None want to handle every message
+		# if their call methods return None, no message is sent. however
+		# they may choose to send messages on their own.
+		if plugin.command == None:
+			result = plugin(sender, message())
+			if result != None:
+				handled = True
+		elif message.startswith(plugin.command):
+			handled = True
+			params=message.split(' ')
+			result = plugin(sender,message, params=params)
+	
+	return (handled, result)
+
 def mumbleTextMessageCallback(sender, message):
-	line="mumble: " + sender + ": " + message
-	console.sendTextMessage(line)
-	irc.sendTextMessage(line)
-	if(message == 'gtfo'):
-		mumble.sendTextMessage("KAY CU")
-		mumble.stop()
+	handled, result = handle_plugins(sender, message)
+	if not handled:
+		line="mumble: " + sender + ": " + message
+		console.sendTextMessage(line)
+		irc.sendTextMessage(line)
+	elif result != None:
+		mumble.sendTextMessage(result)	
 
 def ircTextMessageCallback(sender, message):
-	line="irc: " + sender + ": " + message
-	console.sendTextMessage(line)
-	mumble.sendTextMessage(line)
-	if (message == 'gtfo'):
-		irc.sendTextMessage("KAY CU")
-		irc.stop()
-	elif (message == '!users'):
-		irc.sendTextMessage('Mumble users: '+' '.join(mumble._userIds.keys()))
+	handled, result = handle_plugins(sender, message)
+	if not handled:
+		line="mumble: " + sender + ": " + message
+		console.sendTextMessage(line)
+		mumble.sendTextMessage(line)
+	elif result != None:
+		irc.sendTextMessage(result)	
 
 def consoleTextMessageCallback(sender, message):
 	line="console: " + message
@@ -69,6 +90,7 @@ def main():
 	global mumble
 	global irc
 	global console
+	global plugins
 
 	loglevel = 3
 
@@ -78,6 +100,9 @@ def main():
 	#create python's configparser and read our configfile
 	cparser = ConfigParser.ConfigParser()
 	cparser.read(conffile)
+	
+	# general config
+	pluginlist = cparser.get('general', 'pluginlist')
 
 	#configuration for the mumble connection
 	mblservername = cparser.get('mumble', 'server')
@@ -94,8 +119,8 @@ def main():
 	ircchannel = cparser.get('irc', 'channel')
 	ircencoding = cparser.get('irc', 'encoding')
 	ircloglevel = int(cparser.get('irc', 'loglevel'))
-
-
+	
+	
 	# create server connections
 	#hostname, port, nickname, channel, password, name, loglevel
 	mumble = MumbleConnection.MumbleConnection(mblservername, mblport, mblnick, mblchannel, mblpassword, "mumble", mblloglevel)
@@ -119,10 +144,15 @@ def main():
 	mumble.start()
 	irc.start()
 
+	# load activated plugins
+	sys.path.append('./plugins')
+	for plugin_file in [ x for x in pluginlist.split(',') ]:
+		plugin = __import__(plugin_file)
+		plugins.append(plugin.Plugin(mumble, irc))	
+
+
 	#use the console as main loop
 	console.run()
-
-
 
 if __name__=="__main__":
 	main()
