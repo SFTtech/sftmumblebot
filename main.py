@@ -17,7 +17,7 @@ conffile = "sftbot.conf"
 def handle_plugins(sender, message):
 # don't relay messages already handled by any plugins
 	handled = False
-	
+	result = None
 	global plugins
 	for plugin in plugins:
 		# plugins where command is None want to handle every message
@@ -29,8 +29,9 @@ def handle_plugins(sender, message):
 				handled = True
 		elif message.startswith(plugin.command):
 			handled = True
-			result = plugin(sender,message)
-
+			params=message.split(' ')
+			result = plugin(sender,message, params=params)
+	
 	return (handled, result)
 
 def mumbleTextMessageCallback(sender, message):

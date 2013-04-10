@@ -5,5 +5,5 @@ class Plugin():
 		self.mumble = mumble
 		self.irc = irc
 	
-	def __call__(self, sender, message):
+	def __call__(self, sender, message, params=[]):
 		return 'Mumble users: '+' '.join(self.mumble._userIds.keys())
