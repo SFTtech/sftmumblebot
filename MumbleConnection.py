@@ -77,6 +77,7 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
 			self._socket = ssl.wrap_socket(s)
 		except ssl.SSLError:
 			try:
+				s.close()
 				s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 				s.connect((self._hostname, self._port))
 				self._log("python default ssl connection failed, trying TLSv1", 3)
