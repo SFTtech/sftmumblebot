@@ -1,17 +1,15 @@
+[Description]
+This is [SFT]'s Mumble + IRC Bot.
+
+Use it as a Chat-text bridge between an irc-channel and a mumble server.
 
 
-This is [SFT]'s mumble/irc bot.
+[Configuration]
 
-use it as a text bridge between a irc and mumble server.
-
-
-
-copy sftbot.conf.default to sftbot.conf
-and edit settings as required.
+Copy the file "sftbot.conf.default" to "sftbot.conf" and edit the settings as desired.
 
 
-
-Program dependencies:
+[Dependencies]
 
 python2
 protobuf-python
