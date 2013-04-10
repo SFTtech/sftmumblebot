@@ -14,8 +14,8 @@ console = None
 
 conffile = "sftbot.conf"
 
-def mumbleTextMessageCallback(sender, message):
-	# don't relay messages already handled by any plugins
+def handle_plugins(sender, message):
+# don't relay messages already handled by any plugins
 	handled = False
 	
 	global plugins
@@ -24,42 +24,32 @@ def mumbleTextMessageCallback(sender, message):
 		# if their call methods return None, no message is sent. however
 		# they may choose to send messages on their own.
 		if plugin.command == None:
-			res = plugin(sender, message())
-			if res != None:
+			result = plugin(sender, message())
+			if result != None:
 				handled = True
-				mumble.sendTextMessage(res)
 		elif message.startswith(plugin.command):
 			handled = True
-			mumble.sendTextMessage(plugin(sender,message))
+			result = plugin(sender,message)
 
-	if not handled: 
+	return (handled, result)
+
+def mumbleTextMessageCallback(sender, message):
+	handled, result = handle_plugins(sender, message)
+	if not handled:
 		line="mumble: " + sender + ": " + message
 		console.sendTextMessage(line)
 		irc.sendTextMessage(line)
+	elif result != None:
+		mumble.sendTextMessage(result)	
 
 def ircTextMessageCallback(sender, message):
-	# don't relay messages already handled by any plugins
-	handled = False
-	
-	global plugins
-	for plugin in plugins:
-		# plugins where command is None want to handle every message
-		# if their call methods return None, no message is sent. however
-		# they may choose to send messages on their own.
-		if plugin.command == None:
-			res = plugin(sender, message())
-			if res != None:
-				handled = True
-				irc.sendTextMessage(res)
-		elif message.startswith(plugin.command):
-			handled = True
-			irc.sendTextMessage(plugin(sender,message))
-
-	if not handled: 
-		line="irc: " + sender + ": " + message
+	handled, result = handle_plugins(sender, message)
+	if not handled:
+		line="mumble: " + sender + ": " + message
 		console.sendTextMessage(line)
 		mumble.sendTextMessage(line)
-
+	elif result != None:
+		irc.sendTextMessage(result)	
 
 def consoleTextMessageCallback(sender, message):
 	line="console: " + message
