@@ -12,5 +12,4 @@ Copy the file "sftbot.conf.default" to "sftbot.conf" and edit the settings as de
 [Dependencies]
 
 python2
-protobuf-python
-
+protobuf-python  (package:  python-protobuf in Debian/Ubuntu ,  python2-protobuf in Arch)
