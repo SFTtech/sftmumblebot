@@ -2,7 +2,6 @@ import AbstractConnection
 import sys
 import socket
 import string
-import re
 
 class IRCConnection(AbstractConnection.AbstractConnection):
 
@@ -22,9 +21,6 @@ class IRCConnection(AbstractConnection.AbstractConnection):
 		self._socket = socket.socket()
 		self._socket.connect((self._hostname, self._port))
 		return True
-
-    # compile the regex used in SendTextMessageUnsafe function below
-    _endloesung = re.compile("<(/)?[^>]*>")
 
     # open the socket and return true. don't catch exceptions, since the run() wrapper will do that.
     def _openConnection(self):
@@ -89,14 +85,6 @@ class IRCConnection(AbstractConnection.AbstractConnection):
 
 		return True
 
-<<<<<<< HEAD
-    # pass the given line to _sendMessage, encoded as a PRIVMSG to #self._channel.
-    def _sendTextMessageUnsafe(self, message):
-        #strip html foo from message via Endloesungs-re
-        message = self._endloesung.sub(repl="", string=message)
-
-        return self._sendMessage("PRIVMSG #" + self._channel + " :" + message)
-=======
 	# send the given line via the socket. don't catch any exceptions.
 	def _sendMessageUnsafe(self, message):
 		self._log("tx: " + message, 3)
@@ -106,4 +94,3 @@ class IRCConnection(AbstractConnection.AbstractConnection):
 	# pass the given line to _sendMessage, encoded as a PRIVMSG to #self._channel.
 	def _sendTextMessageUnsafe(self, message):
 		return self._sendMessage("PRIVMSG #" + self._channel + " :" + message)
->>>>>>> origin/feature_mmbl_userlist
