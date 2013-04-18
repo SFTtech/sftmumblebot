@@ -23,10 +23,10 @@ class IRCConnection(AbstractConnection.AbstractConnection):
 		return True
 
     # open the socket and return true. don't catch exceptions, since the run() wrapper will do that.
-    def _openConnection(self):
-        self._socket = socket.socket()
-        self._socket.connect((self._hostname, self._port))
-        return True
+	def _openConnection(self):
+		self._socket = socket.socket()
+		self._socket.connect((self._hostname, self._port))
+		return True
 
 	# send initial packages (NICKname, USER identification, channel JOIN).
 	def _initConnection(self):
