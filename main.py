@@ -45,8 +45,9 @@ def mumbleTextMessageCallback(sender, message):
 
 def ircTextMessageCallback(sender, message):
 	handled, result = handle_plugins(sender, message)
+	
 	if not handled:
-		line="mumble: " + sender + ": " + message
+		line = html_color_string_for_irc + "irc: " + "</span>" + html_color_string_for_sender_name + sender + ": " + "</span>" + message
 		console.sendTextMessage(line)
 		mumble.sendTextMessage(line)
 	elif result != None:
@@ -92,6 +93,9 @@ def main():
 	global console
 	global plugins
 
+	html_color_string_for_sender_name = '<span style="color:brown; font-weight:bold">'
+	html_color_string_for_irc = '<span style="font-weight:bold">'
+
 	loglevel = 3
 
 	if not os.path.isfile(conffile):
@@ -101,8 +105,14 @@ def main():
 	cparser = ConfigParser.ConfigParser()
 	cparser.read(conffile)
 	
-	# general config
-	pluginlist = cparser.get('general', 'pluginlist')
+	# get a plugin-list from conffile
+	plugin_status_tupel_list = cparser.items("plugins") # returns a list of ( parameter, value ) tupels
+	
+	pluginlist = []
+	for tupel in plugin_status_tupel_list:
+		if tupel[1] == "True":
+			pluginlist.append(tupel[0])
+	
 
 	#configuration for the mumble connection
 	mblservername = cparser.get('mumble', 'server')
@@ -146,7 +156,7 @@ def main():
 
 	# load activated plugins
 	sys.path.append('./plugins')
-	for plugin_file in [ x for x in pluginlist.split(',') ]:
+	for plugin_file in pluginlist :
 		plugin = __import__(plugin_file)
 		plugins.append(plugin.Plugin(mumble, irc))	
 
