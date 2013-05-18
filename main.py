@@ -12,6 +12,9 @@ irc = None
 mumble = None
 console = None
 
+html_color_string_for_sender_name = '<span style="color:brown; font-weight:bold">'
+html_color_string_for_irc = '<span style="font-weight:bold">'
+
 conffile = "sftbot.conf"
 
 def handle_plugins(sender, message):
@@ -92,9 +95,6 @@ def main():
 	global irc
 	global console
 	global plugins
-
-	html_color_string_for_sender_name = '<span style="color:brown; font-weight:bold">'
-	html_color_string_for_irc = '<span style="font-weight:bold">'
 
 	loglevel = 3
 
