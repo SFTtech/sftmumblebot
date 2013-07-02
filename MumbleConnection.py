@@ -43,7 +43,9 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
 	# will be auto-generated from channelState messages.
 	_channelIds = {}
 
-	# lookup tables required for translating user names to user Ids and vice-versa.
+	# lookup tables required for translating user names to session Ids and vice-versa.
+	# every user has a own session and session id so we're using this instead of the user id
+	# see line 172 for more
 	# will be auto-generated from userState messages.
 	_users = {}
 	_userIds = {}
@@ -147,15 +149,18 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
 				return True
 
 		# handle the message.
+		
 		if messagetype == Mumble_pb2.ServerSync:
 			self._log("server sync package received. session=" + str(pbMess.session), 1)
 			self._session = pbMess.session
 			self._joinChannel(self._channel)
+		
 		elif messagetype == Mumble_pb2.ChannelState:
 			self._log("channel state package received", 2)
 			if(pbMess.name):
 				self._log("channel " + pbMess.name + " has id " + str(pbMess.channel_id), 2)
 				self._channelIds[pbMess.name] = pbMess.channel_id
+		
 		elif messagetype == Mumble_pb2.TextMessage:
 			try:
 				sender = self._users[pbMess.actor]
@@ -164,6 +169,7 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
 				self._log("unknown text message sender id: " + str(pbMess.actor), 3)
 			self._log("text message received, sender: " + sender, 2)
 			self._invokeTextCallback(sender, pbMess.message)
+		
 		elif messagetype == Mumble_pb2.UserState:
 			self._log("user state package received.", 2)
 			if(pbMess.name and pbMess.session):
@@ -174,17 +180,34 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
 				self._channelId = pbMess.channel_id
 				self._log("I was dragged into another channel. Channle id:" + str(pbMess.channel_id), 2)
 
-		elif messagetype == Mumble_pb2.UserRemove:
-			self._log("Got UserRemove Message", 2)
-			if self._users[pbMess.session] in self._userIds.keys():
+		elif messagetype == Mumble_pb2.UserRemove and pbMess.actor:  # kick UserRemove
+			self._log("Got a \"kick\" UserRemove Message", 2)
+			return True
+	
+		# actually there are 2 types of UserRemove packages:
+		# 1. those sent when a User disconnects
+		# 2. those sent when a User is kicked
+		# 2 distinguishes from 1 by the fact that it has more attributes ( i.e. an actor attribut for the kicker)
+		# when a user is kicked firstly 2 is sent AND then an instance of 1 too.
+		# So just handling generic User remove Packages would lead to an Error because the User would be 
+		# removed 2 times from the local dict of mumblebot.
+		# This is why packages of Type 2 are "ignored" above: 
+		# That way in a kick case the first "kick" UserRemove package 
+		# is ignored and the user gets removed from the second ordinary "disconnect" UserRemove.
+
+		elif messagetype == Mumble_pb2.UserRemove and not pbMess.actor:  # disconnect UserRemove
+			self._log("Got \"disconnect\" UserRemove Message", 2)
+			if self._users[pbMess.session] in self._userIds:
 				del self._userIds[self._users[pbMess.session]]
-			if pbMess.session in self._users.keys():
+			if pbMess.session in self._users:
 				del self._users[pbMess.session] 
 
 		elif messagetype == Mumble_pb2.UDPTunnel:
 			self._log("won't analyze your voice packages, sorry", 4)
+		
 		elif messagetype == Mumble_pb2.Ping:
 			self._log("ping answer received", 3)
+		
 		else:
 			self._log("unhandeled package received: " + messagetype.__name__ + ", " + str(size) + " bytes", 2)
 		return True
