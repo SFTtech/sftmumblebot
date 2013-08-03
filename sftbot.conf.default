@@ -18,6 +18,7 @@ loglevel=1				; this determines how many logs about mumble are displayed on the 
 server=yourfather.com
 port=6667                ;this is irc-standard
 nickname=Text-Bridge
+password=				; empty for no password
 channel=channelname
 encoding=utf-8
 

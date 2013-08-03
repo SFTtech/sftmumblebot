@@ -7,11 +7,12 @@ import re
 class IRCConnection(AbstractConnection.AbstractConnection):
 
 	# call the superconstructor and set global configuration variables.
-	def __init__(self, hostname, port, nickname, channel, encoding, name, loglevel):
+	def __init__(self, hostname, port, nickname, password, channel, encoding, name, loglevel):
 		super(IRCConnection,self).__init__(name, loglevel)
 		self._hostname = hostname
 		self._port = port
 		self._nickname = nickname
+		self._password = password
 		self._channel = channel
 		self._encoding = encoding
 		# the socket that will be used for communication with the IRC server:
@@ -32,8 +33,10 @@ class IRCConnection(AbstractConnection.AbstractConnection):
 		self._socket.connect((self._hostname, self._port))
 		return True
 
-	# send initial packages (NICKname, USER identification, channel JOIN).
+	# send initial packages (PASSword, NICKname, USER identification, channel JOIN).
 	def _initConnection(self):
+		if not self._sendMessage("PASS %s" % self._password):
+			raise Exception("could not send PASS message.")
 		if not self._sendMessage("NICK %s" % self._nickname):
 			raise Exception("could not send NICK message.")
 		if not self._sendMessage("USER %s %s bla :%s" % (self._nickname, self._hostname, self._nickname)):
