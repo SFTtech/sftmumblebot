@@ -126,6 +126,7 @@ def main():
 	ircservername = cparser.get('irc', 'server')
 	ircport = int(cparser.get('irc', 'port'))
 	ircnick = cparser.get('irc', 'nickname')
+	ircpassword = cparser.get('irc', 'password')
 	ircchannel = cparser.get('irc', 'channel')
 	ircencoding = cparser.get('irc', 'encoding')
 	ircloglevel = int(cparser.get('irc', 'loglevel'))
@@ -134,7 +135,7 @@ def main():
 	# create server connections
 	#hostname, port, nickname, channel, password, name, loglevel
 	mumble = MumbleConnection.MumbleConnection(mblservername, mblport, mblnick, mblchannel, mblpassword, "mumble", mblloglevel)
-	irc = IRCConnection.IRCConnection(ircservername, ircport, ircnick, ircchannel, ircencoding, "irc", ircloglevel)
+	irc = IRCConnection.IRCConnection(ircservername, ircport, ircnick, ircpassword, ircchannel, ircencoding, "irc", ircloglevel)
 	console = ConsoleConnection.ConsoleConnection("utf-8", "console", loglevel)
 
 	# register text callback functions
