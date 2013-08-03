@@ -54,13 +54,14 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
 	_session = None
 
 	# call the superconstructor and set global configuration variables.
-	def __init__(self, hostname, port, nickname, channel, password, name, loglevel):
+	def __init__(self, hostname, port, nickname, channel, password, tokens, name, loglevel):
 		super(MumbleConnection,self).__init__(name, loglevel)
 		self._hostname = hostname
 		self._port = port
 		self._nickname = nickname
 		self._channel = channel
 		self._password = password
+		self._tokens = tokens
 		# build the message lookup number table.
 		for i in self._messageLookupMessage.keys():
 			self._messageLookupNumber[self._messageLookupMessage[i]] = i
@@ -103,6 +104,8 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
 		pbMess.username = self._nickname
 		if self._password != None:
 			pbMess.password = self._password
+		for token in self._tokens:
+			pbMess.tokens.append(token)
 		if not self._sendMessage(pbMess):
 			raise Exception("couldn't send auth package", 0)
 		# great success.

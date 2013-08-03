@@ -120,6 +120,7 @@ def main():
 	mblnick = cparser.get('mumble', 'nickname')
 	mblchannel = cparser.get('mumble', 'channel')
 	mblpassword = cparser.get('mumble', 'password')
+	mbltokens = cparser.get('mumble', 'tokens').split()
 	mblloglevel = int(cparser.get('mumble', 'loglevel'))
 
 	#configuration for the IRC connection
@@ -134,7 +135,7 @@ def main():
 	
 	# create server connections
 	#hostname, port, nickname, channel, password, name, loglevel
-	mumble = MumbleConnection.MumbleConnection(mblservername, mblport, mblnick, mblchannel, mblpassword, "mumble", mblloglevel)
+	mumble = MumbleConnection.MumbleConnection(mblservername, mblport, mblnick, mblchannel, mblpassword, mbltokens, "mumble", mblloglevel)
 	irc = IRCConnection.IRCConnection(ircservername, ircport, ircnick, ircpassword, ircchannel, ircencoding, "irc", ircloglevel)
 	console = ConsoleConnection.ConsoleConnection("utf-8", "console", loglevel)
 
