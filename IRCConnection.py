@@ -60,8 +60,8 @@ class IRCConnection(AbstractConnection.AbstractConnection):
 
 	# read and interpret data from socket in this method.
 	def _listen(self):
-		# read up to 1 kB of data into the buffer.
-		self._readBuffer += self._socket.recv(1024)
+		# read up to 4 kB of data into the buffer.
+		self._readBuffer += self._socket.recv(4096)
 		# get all distinct lines from the buffer into lines.
 		lines = self._readBuffer.split('\n')
 		# move the last (unfinished) line back into the buffer.
