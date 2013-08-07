@@ -6,35 +6,35 @@
 
 [mumble]
 server=yourmother.com
-port=64738               ; this is mumble-standard
-nickname=Text-Bridge			 ; nickname of the bot in mumble
-channel=channelname		 ; name of the channel to join
-password=orleaveitempty  
-tokens=					; tokens seperated by spaces
+port=64738                ; this is mumble-standard
+nickname=Text-Bridge      ; nickname of the bot in mumble
+channel=channelname       ; name of the channel to join
+password=orleaveitempty   ; password for joining mumble server
+tokens=lol rofl gschicht  ; tokens seperated by spaces
 
-loglevel=1				; this determines how many logs about mumble are displayed on the console
+loglevel=1                ; this determines how many logs about mumble are displayed on the console
 
 
 [irc]
 server=yourfather.com
-port=6667                ;this is irc-standard
+port=6667                 ; this is irc-standard
 nickname=Text-Bridge
-password=				; empty for no password
+password=                 ; empty for no password
 channel=channelname
 encoding=utf-8
 
-loglevel=1				; this determines how many logs about irc are displayed on the console
+loglevel=1                ; this determines how many logs about irc are displayed on the console
 
-# this contains a list of all currently existing plugins 
+# this contains a list of all currently existing plugins
 # in the "plugin" subfolder.
 # A Plugin will be activated in the program if its value here is "True"
 # Its not activated if its value is  anything else (including empty or whitespaces)
 # If you're not interested at all, leave the predefined values,
 # the're chosen wisely.
 [plugins]
-hello		= True   ; experimental plugin, says hello when invoked by !hello
-insult		= True	 ; insults users with !insult
-mumbleusers	= True   ; !mumbleusers tells you the current logged in users in mumbel
+hello       = True   ; experimental plugin, says hello when invoked by !hello
+insult      = True   ; insults users with !insult
+mumbleusers = True   ; !mumbleusers tells you the current logged in users in mumbel
 
 
 
