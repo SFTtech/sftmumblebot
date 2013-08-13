@@ -88,3 +88,10 @@ class IRCConnection(AbstractConnection.AbstractConnection):
 	# pass the given line to _sendMessage, encoded as a PRIVMSG to #self._channel.
 	def _sendTextMessageUnsafe(self, message):
 		return self._sendMessage("PRIVMSG #" + self._channel + " :" + message)
+
+	# send /AWAY command to IRC server with optional message (if no message then mark no longer away)
+	def setAway(self, message=None):
+		if message:
+			return self._sendMessage("AWAY" + " :" + message)
+		else:
+			return self._sendMessage("AWAY")
