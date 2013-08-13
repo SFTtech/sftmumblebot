@@ -90,7 +90,7 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
 	def _initConnection(self):
 		# send version package.
 		pbMess = Mumble_pb2.Version()
-		pbMess.release = "1.2.0"
+		pbMess.release = "1.2.4"
 		pbMess.version = 66048
 		pbMess.os = platform.system()
 		pbMess.os_version = "mumblebot lol"
