@@ -111,7 +111,7 @@ class AbstractConnection(object):
 	def start(self):
 		thread.start_new_thread(self.run, ())
 
-	# call this to start the connection, directly.
+	# call this to terminate the connection
 	# you should not overload this method.
 	def stop(self):
 		self._connected = False
