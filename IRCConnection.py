@@ -38,6 +38,7 @@ class IRCConnection(AbstractConnection.AbstractConnection):
 
 	# close the socket.
 	def _closeConnection(self):
+		self._sendMessage("QUIT");
 		self._socket.shutdown(socket.SHUT_RDWR)
 		self._socket.close()
 		return True
