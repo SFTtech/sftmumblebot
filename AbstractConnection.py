@@ -163,8 +163,10 @@ class AbstractConnection(object):
 
 			# the main listening loop.
 			while self._connected:
-				if not self._listen():
+				success = self._listen()
+				if not success:
 					raise Exception("listening error")
+
 		except:
 			self._log("connection terminated with an error:\n" + str(sys.exc_info()[0]), 0)
 			self._log(traceback.format_exc(), 1)
@@ -178,8 +180,8 @@ class AbstractConnection(object):
 		try:
 			if not self._closeConnection():
 				raise Exception("unknown error")
-		except:
-			self._log("socket could not be closed:\n" + str(sys.exc_info()[0]), 1)
+		except Exception as e:
+			self._log("socket could not be closed: " + str(e) + "\n" + str(sys.exc_info()[0]), 1)
 			self._log(traceback.format_exc(), 2)
 		else:
 			self._log("socket successfully closed", 2)
@@ -202,16 +204,17 @@ class AbstractConnection(object):
 	# calls _sendUnprotectedMessage to do the actual job.
 	# you should not overload this method.
 	def _sendMessage(self, message):
-		self._sendingLock.acquire()
-		try:
-			# synchronized gschichten.
-			if not self._sendMessageUnsafe(message):
-				raise Exception("unknown error")
-		except:
-			self._log("could not send message: " + str(sys.exc_info()[0]), 1)
-			self._log(traceback.format_exc(), 2)
-		self._sendingLock.release()
-		return True
+		with self._sendingLock:
+			try:
+				# synchronized gschichten.
+				if not self._sendMessageUnsafe(message):
+					return False
+			except:
+				self._log("could not send message: " + str(sys.exc_info()[0]), 1)
+				self._log(traceback.format_exc(), 2)
+				self._connected = False
+				return False
+			return True
 
 	def sendTextMessage(self, message):
 		try:

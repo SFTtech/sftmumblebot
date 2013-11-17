@@ -14,7 +14,7 @@ class IRCConnection(AbstractConnection.AbstractConnection):
 		self._channel = channel
 		self._encoding = encoding
 		# the socket that will be used for communication with the IRC server:
-		_socket = None
+		self._socket = None
 
 	# open the socket and return true. don't catch exceptions, since the run() wrapper will do that.
 	def _openConnection(self):
@@ -83,7 +83,11 @@ class IRCConnection(AbstractConnection.AbstractConnection):
 	# send the given line via the socket. don't catch any exceptions.
 	def _sendMessageUnsafe(self, message):
 		self._log("tx: " + message, 3)
-		self._socket.send(message.encode(self._encoding, errors='ignore') + "\n")
+		try:
+			self._socket.send(message.encode(self._encoding, errors='ignore') + "\n")
+		except Exception as e:
+			self._log("failed sending %s: " % (message) + str(e), 1)
+			return False
 		return True
 
 	# pass the given line to _sendMessage, encoded as a PRIVMSG to #self._channel.
