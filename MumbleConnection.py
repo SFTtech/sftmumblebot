@@ -247,6 +247,7 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
 		pbMess = Mumble_pb2.UserState()
 		pbMess.session = self._session
 		pbMess.comment = message
+		pbMess.channel_id = self._channelId
 		if not self._sendMessage(pbMess):
 			self._log("failed to send comment package", 1)
 			return False
