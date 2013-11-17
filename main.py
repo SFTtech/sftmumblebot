@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 import sys
 import MumbleConnection
 import IRCConnection
@@ -34,31 +34,37 @@ def consoleTextMessageCallback(sender, message):
 	irc.sendTextMessage(line)
 	mumble.sendTextMessage(line)
 
+def mumbleConnected():
+	irc.setAway()
+
 def mumbleDisconnected():
 	line="connection to mumble lost. reconnect in 5 seconds."
 	console.sendTextMessage(line)
-	irc.sendTextMessage(line)
+	irc.setAway(line)
 	time.sleep(5)
 	mumble.start()
 
 def mumbleConnectionFailed():
 	line="connection to mumble failed. retrying in 15 seconds."
 	console.sendTextMessage(line)
-	irc.sendTextMessage(line)
+	irc.setAway(line)
 	time.sleep(15)
 	mumble.start()
+
+def ircConnected():
+	mumble.setComment()
 
 def ircDisconnected():
 	line="connection to irc lost. reconnect in 15 seconds."
 	console.sendTextMessage(line)
-	mumble.sendTextMessage(line)
+	mumble.setComment(line)
 	time.sleep(15)
 	irc.start()
 
 def ircConnectionFailed():
 	line="connection to irc failed. retrying in 15 seconds."
 	console.sendTextMessage(line)
-	mumble.sendTextMessage(line)
+	mumble.setComment(line)
 	time.sleep(15)
 	irc.start()
 
@@ -104,6 +110,10 @@ def main():
 	mumble.registerTextCallback(mumbleTextMessageCallback)
 	irc.registerTextCallback(ircTextMessageCallback)
 	console.registerTextCallback(consoleTextMessageCallback)
+
+	# register connection-established callback functions
+	mumble.registerConnectionEstablishedCallback(mumbleConnected)
+	irc.registerConnectionEstablishedCallback(ircConnected)
 
 	# register connection-lost callback functions
 	irc.registerConnectionLostCallback(ircDisconnected)

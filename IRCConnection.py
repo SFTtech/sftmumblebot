@@ -38,6 +38,7 @@ class IRCConnection(AbstractConnection.AbstractConnection):
 
 	# close the socket.
 	def _closeConnection(self):
+		self._sendMessage("QUIT");
 		self._socket.shutdown(socket.SHUT_RDWR)
 		self._socket.close()
 		return True
@@ -88,3 +89,14 @@ class IRCConnection(AbstractConnection.AbstractConnection):
 	# pass the given line to _sendMessage, encoded as a PRIVMSG to #self._channel.
 	def _sendTextMessageUnsafe(self, message):
 		return self._sendMessage("PRIVMSG #" + self._channel + " :" + message)
+
+	# send /AWAY command to IRC server with optional message (if no message then mark no longer away)
+	def setAway(self, message=None):
+		if not self._established:
+			self._log("can't set IRC away status since connection not established", 1)
+			return False
+
+		if message:
+			return self._sendMessage("AWAY" + " :" + message)
+		else:
+			return self._sendMessage("AWAY")

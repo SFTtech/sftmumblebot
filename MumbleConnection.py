@@ -90,7 +90,7 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
 	def _initConnection(self):
 		# send version package.
 		pbMess = Mumble_pb2.Version()
-		pbMess.release = "1.2.0"
+		pbMess.release = "1.2.4"
 		pbMess.version = 66048
 		pbMess.os = platform.system()
 		pbMess.os_version = "mumblebot lol"
@@ -232,3 +232,23 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
 
 		self._channelId = cid
 		self._connectionEstablished()
+
+	# set user comment in Mumble (note icon in user list), or remove it with empty message string
+	def setComment(self, message=""):
+		if not self._session:
+			self._log("can't set Mumble comment since we don't have a valid session id", 1)
+			return False
+
+		if len(message) > 128:
+			# longer comments would require handling RequestBlob messages
+			self._log("cannot set Mumble comment longer than 128 bytes", 1)
+			return False
+
+		pbMess = Mumble_pb2.UserState()
+		pbMess.session = self._session
+		pbMess.comment = message
+		if not self._sendMessage(pbMess):
+			self._log("failed to send comment package", 1)
+			return False
+
+		return True
