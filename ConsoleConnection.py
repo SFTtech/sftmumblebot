@@ -61,7 +61,7 @@ class ConsoleConnection(AbstractConnection.AbstractConnection):
             return line.decode('ascii', errors='ignore')
         except:
             # last chance, seriously
-            self._logException("failed decoding as ascii, ignoring errors"
+            self._logException("failed decoding as ascii, ignoring errors",
                                1)
 
         return "[decoding error]"
