@@ -26,7 +26,7 @@ Nice-to-have features (which we don't plan to implement right now, but feel free
 
 - SSL certificate validation support
 - SSL client certificate support
-- More chat protocols (e.g. XMPP user chat)
+- More chat protocols (e.g. XMPP multi-user chat)
 - Init scripts for `<your distribution here>`
 
 ### Contact
