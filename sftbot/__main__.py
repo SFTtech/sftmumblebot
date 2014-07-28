@@ -6,6 +6,7 @@ import ConsoleConnection
 import time
 import ConfigParser
 import os.path
+import sftbot
 
 irc = None
 mumble = None
@@ -77,6 +78,8 @@ def ircConnectionFailed():
 
 
 def main():
+    print("sft mumble bot " + sftbot.VERSION)
+
     global mumble
     global irc
     global console
@@ -102,6 +105,7 @@ def main():
                             ", ".join(conffiles))
 
     # read the conffile from the identified path
+    print("loading conf file " + conffile)
     cparser = ConfigParser.ConfigParser()
     cparser.read(conffile)
 
