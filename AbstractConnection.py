@@ -4,6 +4,7 @@ import string
 import thread
 import threading
 import traceback
+import util
 
 
 class AbstractConnection(object):
@@ -291,11 +292,10 @@ class AbstractConnection(object):
     def _log(self, message, level):
         if(self._loglevel >= level):
             for line in message.split('\n'):
-                try:
-                    oline = line.encode('utf-8', errors='ignore')
-                except:
-                    oline = repr(line)
-                print("(" + str(level) + ") " + self._name + ": " + oline)
+                output = "(" + str(level) + ") " + self._name + ":"
+                output = output.ljust(15)
+                output = output + util.try_encode(line, 'utf-8')
+                print(output)
 
     def _logException(self, message, level):
         self._log(message + ": " + str(sys.exc_info()[0]), level)

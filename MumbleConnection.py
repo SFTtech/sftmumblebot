@@ -36,6 +36,7 @@ messageTypes = {
 for k, v in messageTypes.items():
     v.typeID = k
 
+
 class MumbleConnection(AbstractConnection.AbstractConnection):
 
     # call the superconstructor and set global configuration variables.

@@ -1,6 +1,7 @@
 import AbstractConnection
 import sys
 import string
+import util
 
 
 class ConsoleConnection(AbstractConnection.AbstractConnection):
@@ -31,41 +32,6 @@ class ConsoleConnection(AbstractConnection.AbstractConnection):
         """
         return True
 
-    def _try_decode_as_hard_as_possible(self, line):
-        """
-        console input can be hard to decode. seriously.
-        """
-        try:
-            return line.decode(self._encoding)
-        except:
-            self._logException("failed decoding as " + self._encoding, 1)
-
-        try:
-            return line.decode('utf-8')
-        except:
-            self._logException("failed decoding as utf-8", 1)
-
-        try:
-            return line.decode('latin-1')
-        except:
-            self._logException("failed decoding as latin-1", 1)
-
-        try:
-            return line.decode('utf-8', errors='ignore')
-        except:
-            # how could this even happen
-            self._logException("failed decoding as utf-8, ignoring errors",
-                               1)
-
-        try:
-            return line.decode('ascii', errors='ignore')
-        except:
-            # last chance, seriously
-            self._logException("failed decoding as ascii, ignoring errors",
-                               1)
-
-        return "[decoding error]"
-
     def _listen(self):
         """
         read data from stdin, and interpret it as a chat message
@@ -77,7 +43,7 @@ class ConsoleConnection(AbstractConnection.AbstractConnection):
             self._invokeTextCallback("console", "Goodbye.")
             return False
 
-        line = self._try_decode_as_hard_as_possible(line)
+        line = util.try_decode(line, self._encoding)
         self._invokeTextCallback("console", line)
         return True
 
@@ -86,7 +52,7 @@ class ConsoleConnection(AbstractConnection.AbstractConnection):
         """
         write the message to stdout
         """
-        print(message.encode(self._encoding, errors='ignore'))
+        print(util.try_encode(message, self._encoding))
         return True
 
     # pass the given line to _sendMessage.

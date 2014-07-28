@@ -2,6 +2,7 @@ import AbstractConnection
 import sys
 import socket
 import string
+import util
 
 
 class IRCConnection(AbstractConnection.AbstractConnection):
@@ -69,14 +70,8 @@ class IRCConnection(AbstractConnection.AbstractConnection):
 
         # process all lines.
         for line in lines:
-            try:
-                # TODO: try decode as hard as possible
-                iline = line.decode(self._encoding, errors='ignore')
-            except:
-                self._log("received a line which is not valid " +
-                          self._encoding + ": " + repr(iline), 1)
-            line = iline
-            self._log("rx: "+line, 3)
+            line = util.try_decode(line, self._encoding)
+            self._log("rx: " + line, 3)
             # split the line up at spaces
             line = line.rstrip().split(' ', 3)
 
@@ -106,8 +101,7 @@ class IRCConnection(AbstractConnection.AbstractConnection):
         """
         self._log("tx: " + message, 3)
         try:
-            self._socket.send(message.encode(self._encoding, errors='ignore') +
-                              "\n")
+            self._socket.send(util.try_encode(message, self._encoding) + "\n")
         except Exception as e:
             self._log("failed sending %s: " % (message) + str(e), 1)
             return False
