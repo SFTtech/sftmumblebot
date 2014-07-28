@@ -11,10 +11,6 @@ You need to provide a config file that (among others) contains user credentials 
 
 You can either specify a conf file path as a command line argument (`sftbot myconffile.conf`), or place it at `./sftbot.conf` or `/etc/sftbot.conf`.
 
-### Configuration
-
-Copy "sftbot.conf.default" to "sftbot.conf" and edit the settings as desired.
-
 ### Dependencies
 
 - python2
@@ -29,6 +25,10 @@ Nice-to-have features (which we don't plan to implement right now, but feel free
 - More chat protocols (e.g. XMPP multi-user chat)
 - Init scripts for `<your distribution here>`
 
+### Misc
+
+Mumble uses Google Protobuf for most of its communications; this means that one code file needs to be auto-generated (that's what the `Makefile` is there for). Unfortunately, `protoc` does not officially support `python3`, so we're forced to deal with `python2` and all its string buffer ugliness.
+
 ### Contact
 
 You can find us at `irc.freenode.net/#sfttech`. If you found a bug, feel free to join and randomly insult channel OPs until someone fixes it (or bans you).
@@ -36,4 +36,4 @@ Alternatively, fix it yourself and send a pull request.
 
 ### Contributors/Copyright
 
-See the COPYING file. The license is GPLv3 or higher.
+See `COPYING`. The license is GPLv3 or higher.
