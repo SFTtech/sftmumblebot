@@ -210,9 +210,10 @@ class AbstractConnection(object):
                 raise Exception("unknown error")
         except:
             self._logException("initial packages could not be sent")
-            # TODO shouldn't there be some call to self._closeConnection here?
-            # why else would we even differentiate between openConnection and
-            # initConnection?
+            try:
+                self._closeConnection()
+            except:
+                pass
             self._invokeConnectionFailedCallback()
             return
         else:
