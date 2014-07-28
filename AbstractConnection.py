@@ -209,7 +209,7 @@ class AbstractConnection(object):
             if not self._initConnection():
                 raise Exception("unknown error")
         except:
-            self._logException("initial packages could not be sent")
+            self._logException("initial packages could not be sent", 1)
             try:
                 self._closeConnection()
             except:
