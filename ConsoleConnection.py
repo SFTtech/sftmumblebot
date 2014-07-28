@@ -2,66 +2,96 @@ import AbstractConnection
 import sys
 import string
 
+
 class ConsoleConnection(AbstractConnection.AbstractConnection):
+    def __init__(self, encoding, name, loglevel):
+        """
+        just store the encoding.
+        """
+        super(ConsoleConnection, self).__init__(name, loglevel)
+        self._encoding = encoding
 
-	# call the superconstructor and set global configuration variables.
-	def __init__(self, encoding, name, loglevel):
-		super(ConsoleConnection,self).__init__(name, loglevel)
-		self._encoding = encoding
+    def _openConnection(self):
+        """
+        there is nothing to open; all we need is stdout/stdin.
+        """
+        return True
 
-	# no need to do anything here.
-	def _openConnection(self):
-		return True
+    def _initConnection(self):
+        """
+        nothing to do here either.
+        """
+        return True
 
-	# no need to do anything here as well.
-	def _initConnection(self):
-		return True
+    # no need to overload _postConnect either.
 
-	# post-connect, call _connectionEstablished() and return true.
-	def _postConnect(self):
-		self._connectionEstablished()
-		return True
+    def _closeConnection(self):
+        """
+        closing is a no-op, too.
+        """
+        return True
 
-	# no need to do anything here.
-	def _closeConnection(self):
-		return True
+    def _try_decode_as_hard_as_possible(self, line):
+        """
+        console input can be hard to decode. seriously.
+        """
+        try:
+            return line.decode(self._encoding)
+        except:
+            self._logException("failed decoding as " + self._encoding, 1)
 
-	# read and interpret data from stdin.
-	def _listen(self):
-		try:
-			line = sys.stdin.readline()
-		except KeyboardInterrupt:
-			self._log("keyboard interrupt", 1)
-			self._invokeTextCallback("console", "Goodbye.")
-			return False
+        try:
+            return line.decode('utf-8')
+        except:
+            self._logException("failed decoding as utf-8", 1)
 
-		uline = None
-		try:
-			uline = line.decode(self._encoding)
-		except:
-			self._log("decoding the line using the default encoding " + self._encoding + " has failed.", 1)
-			try:
-				uline = line.decode('utf-8')
-			except:
-				self._log("decoding the line using utf-8 has failed.", 1)
-				try:
-					uline = line.decode('latin-1')
-				except:
-					self._log("decoding the line using latin-1 has failed. trying errors='ignore' from now on.", 1)
-					try:
-						uline = line.decode('utf-8', errors='ignore')
-					except:
-						self._log("how the fuck did you manage to crash line.decode('utf-8', errors='ignore')? now if decode('ascii', errors='ignore') fails, it's clearly your fault.", 1)
-						uline = line.decode('ascii', errors='ignore')
-		if(uline):
-			self._invokeTextCallback("console", uline)
-		return True
+        try:
+            return line.decode('latin-1')
+        except:
+            self._logException("failed decoding as latin-1", 1)
 
-	# send the given line to stdout.
-	def _sendMessageUnsafe(self, message):
-		print(message.encode(self._encoding, errors='ignore'))
-		return True
+        try:
+            return line.decode('utf-8', errors='ignore')
+        except:
+            # how could this even happen
+            self._logException("failed decoding as utf-8, ignoring errors",
+                               1)
 
-	# pass the given line to _sendMessage.
-	def _sendTextMessageUnsafe(self, message):
-		return self._sendMessage(message)
+        try:
+            return line.decode('ascii', errors='ignore')
+        except:
+            # last chance, seriously
+            self._logException("failed decoding as ascii, ignoring errors"
+                               1)
+
+        return "[decoding error]"
+
+    def _listen(self):
+        """
+        read data from stdin, and interpret it as a chat message
+        """
+        try:
+            line = sys.stdin.readline()
+        except KeyboardInterrupt:
+            self._log("keyboard interrupt", 1)
+            self._invokeTextCallback("console", "Goodbye.")
+            return False
+
+        line = self._try_decode_as_hard_as_possible(line)
+        self._invokeTextCallback("console", line)
+        return True
+
+    # send the given line to stdout.
+    def _sendMessageUnsafe(self, message):
+        """
+        write the message to stdout
+        """
+        print(message.encode(self._encoding, errors='ignore'))
+        return True
+
+    # pass the given line to _sendMessage.
+    def _sendTextMessageUnsafe(self, message):
+        """
+        text messages are just written as they are, no need to add a header
+        """
+        return self._sendMessage(message)

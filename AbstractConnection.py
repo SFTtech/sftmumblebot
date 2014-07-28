@@ -5,223 +5,297 @@ import thread
 import threading
 import traceback
 
+
 class AbstractConnection(object):
-	# the constructor should only set global configuration variables according to
-	# it's arguments. under no circumstances, it should open a connection. that's the
-	# job of the methods invoked by run().
-	# you should overload this method, but call the superconstructor in the first line.
-	def __init__(self, name, loglevel):
-		# the mutex for sending raw data:
-		self._sendingLock = threading.Lock()
-		#loglevel, the captain obvious among the attributes
-		self._loglevel = loglevel
-		# this variable stores if we're currently connected, and all neccesary initial packages have been sent:
-		self._connected = False
-		# this variable stores if the conneciton is fully established, allowing text messages to be sent:
-		self._established = False
-		# the name of the bot, as it appears in the logs:
-		self._name = name
+    """
+    abstract connection object that specifies the connection's interface.
 
-		#a list of all callback functions that will be invoked when a text message is received.
-		self._textCallback = []
-		#a list of all callback functions that will be invoked when the connection is established:
-		self._connectionEstablishedCallback = []
-		#a list of all callback functions that will be invoked when the connection is lost:
-		self._connectionLostCallback = []
-		#a list of all callback functions that will be invoked when a connection attempt fails:
-		self._connectionFailedCallback = []
+    MumbleConnection, IRCConnection and others inherit from this.
+    """
 
-	# do stuff like opening sockets/files.
-	# return true if and only if the connection was successfully opened.
-	# if an error occured, eighter return false, or raise an exception that contains a detailed description.
-	# you need to overload this method.
-	def _openConnection(self):
-		raise notImplementedError("_openConnection() not implemented in abstract class AbstractConnection")
+    def __init__(self, name, loglevel):
+        """
+        MUST NOT build an actual connection, just store config values.
 
-	# do stuff like sending initial packages or launching a PING thread.
-	# return true if and only if the connection was successfully opened.
-	# if an error occured, eighter return false, or raise an exception that contains a detailed description.
-	# you need to overload this method, even if 'return true' will be it's only content.
-	def _initConnection(self):
-		raise notImplementedError("_initConnection() not implemented in abstract class AbstractConnection")
+        MAY be overloaded.
+        Overloads MUST call this function as superconstructor.
+        """
+        # mutex for sending raw data
+        self._sendingLock = threading.Lock()
+        self._loglevel = loglevel
+        # are we currently connected, and have all initial packages been sent?
+        self._connected = False
+        # is the connection currently fully established?
+        # (does it allow sending messages?)
+        self._established = False
+        # bot name (mainly for logging)
+        self._name = name
 
-	# do stuff like calling _connectionEstablished().
-	# return false or raise an error to close the connection immediately before it enters the listening loop.
-	# you can, but won't need to, overload this method.
-	def _postConnect(self):
-		self._connectionEstablished()
-		return True
+        # the following lists are callback functions that will be invoked...
+        # on text message receipt
+        self._textCallback = []
+        # on connection establishment
+        self._connectionEstablishedCallback = []
+        # on connection loss
+        self._connectionLostCallback = []
+        # on connection attempt failure
+        self._connectionFailedCallback = []
 
-	# do stuff like closing the socket/file.
-	# return true if and only if the connection was successfully closed, and if it was still open beforehand.
-	# otherwise, eighter return false, or raise an exception that contains a detailed description
-	# you need to overload this method.
-	def _closeConnection(self):
-		raise notImplementedError("_closeConnection() not implemented in abstract class AbstractConnection")
+    def _openConnection(self):
+        """
+        SHOULD open sockets/files etc.
 
-	# contains the main listening loop, which reads data from the socket/file, and sends responses.
-	# return false or raise an error if the listening has somehow fatally failed. note that the listening
-	# loop will be terminated in that case.
-	# you need to overload this method.
-	def _listen(self):
-		raise notImplementedError("_listen() not implemented in abstract class AbstractConnection")
+        returns True IFF the connection was successfully opened.
 
-	# sends the message via the connection's socket/file/etc
-	# return false or raise an error if the sending of message has failed.
-	# you need to overload this method.
-	def _sendMessageUnsafe(self, message):
-		raise notImplementedError("_sendMessageUnsafe() not implemented in abstract class AbstractConnection")
+        on error, returns False, or raises an exception containing a
+        description.
 
-	# sends a text message, using _sendMessage().
-	# return false or raise an error if the sending of the text message has failed.
-	# you need to overload this method.
-	def _sendTextMessageUnsafe(self, message):
-		raise notImplementedError("sendTextMessage() not implemented in abstract class AbstractConnection")
+        MUST be overloaded.
+        """
+        raise NotImplementedError("_openConnection() not implemented in " +
+                                  "abstract class AbstractConnection")
 
-	def registerTextCallback(self, function):
-		self._textCallback.append(function)
+    def _initConnection(self):
+        """
+        SHOULD send initial packages, launch PING threads, etc.
 
-	def registerConnectionEstablishedCallback(self, function):
-		self._connectionEstablishedCallback.append(function)
+        returns True on success.
 
-	def registerConnectionLostCallback(self, function):
-		self._connectionLostCallback.append(function)
+        on error, returns False, or raises an exception containing a
+        description.
 
-	def registerConnectionFailedCallback(self, function):
-		self._connectionFailedCallback.append(function)
+        MUST be overloaded, but may be just 'return true'.
+        """
+        raise NotImplementedError("_initConnection() not implemented in " +
+                                  " abstract class AbstractConnection")
 
-	def _invokeTextCallback(self, sender, message):
-		for f in self._textCallback:
-			f(sender, message)
+    def _postConnect(self):
+        """
+        MAY call _connectionEstablished(), but for some heavier protocols
+        like Mumble, it may be too early for that.
 
-	def _invokeConnectionEstablishedCallback(self):
-		for f in self._connectionEstablishedCallback:
-			f()
+        called before entering the listening loop.
 
-	def _invokeConnectionLostCallback(self):
-		for f in self._connectionLostCallback:
-			f()
+        returning False or raising an error will immediately close the
+        connection, causing it to _not_ enter the listening loop.
 
-	def _invokeConnectionFailedCallback(self):
-		for f in self._connectionFailedCallback:
-			f()
+        MAY be overloaded.
+        """
+        self._connectionEstablished()
+        return True
 
-	# call this to start the connection, as a thread.
-	# you should not overload this method.
-	def start(self):
-		thread.start_new_thread(self.run, ())
+    def _closeConnection(self):
+        """
+        SHOULD close the socket/file.
 
-	# call this to terminate the connection
-	# you should not overload this method.
-	def stop(self):
-		self._connected = False
-		self._established = False
+        returns True on success, and if the connection was open beforehand.
 
-	# this method needs to be called manually, as soon as the connection is ready to transmit text
-	# messages.
-	# you should not overload this method.
-	def _connectionEstablished(self):
-		if not self._connected:
-			raise Exception("connection can't be established, since it's not even connected")
-		self._established = True
-		self._invokeConnectionEstablishedCallback()
+        MUST be overloaded.
+        """
+        raise NotImplementedError("_closeConnection() not implemented in " +
+                                  "abstract class AbstractConnection")
 
-	# opens and initializes the connection, contains the listening loop, and closes the connection.
-	# you should not overload this method.
-	def run(self):
-		try:
-			if not self._openConnection():
-				raise Exception("unknown error")
-		except:
-			self._log("connection could not be opened:\n" + str(sys.exc_info()[0]), 0)
-			self._log(traceback.format_exc(), 1)
-			self._invokeConnectionFailedCallback()
-			return
-		else:
-			self._log("connection successfully opened", 2)
+    def _listen(self):
+        """
+        Called from the main listening loop.
 
-		try:
-			if not self._initConnection():
-				raise Exception("unknown error")
-		except:
-			self._log("initial packages could not be sent:\n" + str(sys.exc_info()[0]), 0)
-			self._log(traceback.format_exc(), 1)
-			self._invokeConnectionFailedCallback()
-			return
-		else:
-			self._log("initial packages successfully sent", 2)
+        SHOULD read data from socket/file, and send responses.
 
-		# we can now consider ourselves connected.
-		# please note that the connection does not count as established yet,
-		# you'll need to call invokeConnectionEstablishedCallback yourself...
-		self._connected = True
+        return False or raise an error if listening fails.
+        the loop will be cleanly terminated in that case.
 
-		try:
-			# ... for example in this optional post-connect method.
-			if not self._postConnect():
-				raise Exception("postConnect error")
+        MUST be overloaded.
+        """
+        raise NotImplementedError("_listen() not implemented in " +
+                                  "abstract class AbstractConnection")
 
-			# the main listening loop.
-			while self._connected:
-				success = self._listen()
-				if not success:
-					raise Exception("listening error")
+    def _sendMessageUnsafe(self, message):
+        """
+        SHOULD send the message via the connection's socket/file.
 
-		except:
-			self._log("connection terminated with an error:\n" + str(sys.exc_info()[0]), 0)
-			self._log(traceback.format_exc(), 1)
-		else:
-			self._log("connection terminated without error", 1)
+        return False or raise an error if the sending fails.
 
-		self._established = False
-		self._connected = False
+        MUST be overloaded.
+        """
+        raise NotImplementedError("_sendMessageUnsafe() not implemented in " +
+                                  "abstract class AbstractConnection")
 
-		# try to close the file/socket, in case it's still open.
-		try:
-			if not self._closeConnection():
-				raise Exception("unknown error")
-		except Exception as e:
-			self._log("socket could not be closed: " + str(e) + "\n" + str(sys.exc_info()[0]), 1)
-			self._log(traceback.format_exc(), 2)
-		else:
-			self._log("socket successfully closed", 2)
+    def _sendTextMessageUnsafe(self, message):
+        """
+        Sends a text message.
 
-		# invoke the connectionLost callback functions.
-		self._invokeConnectionLostCallback()
+        return False or raise an error if the sending has failed.
 
-	# prints a log message to stdout.
-	# you should not overload this method.
-	def _log(self, message, level):
-		if(self._loglevel >= level):
-			for line in message.split('\n'):
-				try:
-					oline = line.encode('utf-8', errors='ignore')
-				except:
-					oline = repr(line)
-				print("(" + str(level) + ") " + self._name + ": " + oline)
+        SHOULD add the neccesary 'text message' headers to the message,
+        and call _sendMessage().
 
-	# sends a message, taking care of thread-safety and error handling.
-	# calls _sendUnprotectedMessage to do the actual job.
-	# you should not overload this method.
-	def _sendMessage(self, message):
-		with self._sendingLock:
-			try:
-				# synchronized gschichten.
-				if not self._sendMessageUnsafe(message):
-					return False
-			except:
-				self._log("could not send message: " + str(sys.exc_info()[0]), 1)
-				self._log(traceback.format_exc(), 2)
-				self._connected = False
-				return False
-			return True
+        MUST be overloaded.
+        """
+        raise NotImplementedError("sendTextMessage() not implemented in " +
+                                  "abstract class AbstractConnection")
 
-	def sendTextMessage(self, message):
-		try:
-			if not self._established:
-				raise Exception("connection not established")
-			if not self._sendTextMessageUnsafe(message):
-				raise Exception("unknown error")
-		except:
-			self._log("could not send text message: " + str(sys.exc_info()[0]), 1)
-			self._log(traceback.format_exc(), 2)
+    # the following methods SHOULD NOT be overloaded.
+
+    def registerTextCallback(self, function):
+        self._textCallback.append(function)
+
+    def registerConnectionEstablishedCallback(self, function):
+        self._connectionEstablishedCallback.append(function)
+
+    def registerConnectionLostCallback(self, function):
+        self._connectionLostCallback.append(function)
+
+    def registerConnectionFailedCallback(self, function):
+        self._connectionFailedCallback.append(function)
+
+    def _invokeTextCallback(self, sender, message):
+        for f in self._textCallback:
+            f(sender, message)
+
+    def _invokeConnectionEstablishedCallback(self):
+        for f in self._connectionEstablishedCallback:
+            f()
+
+    def _invokeConnectionLostCallback(self):
+        for f in self._connectionLostCallback:
+            f()
+
+    def _invokeConnectionFailedCallback(self):
+        for f in self._connectionFailedCallback:
+            f()
+
+    def start(self):
+        """
+        call this to start the connection, as a thread.
+        """
+        thread.start_new_thread(self.run, ())
+
+    def stop(self):
+        """
+        call this to terminate the connection.
+        """
+        self._connected = False
+        self._established = False
+
+    def _connectionEstablished(self):
+        """
+        MUST be called manually, as soon as the connection is ready to
+        transmit text messages.
+        """
+        if not self._connected:
+            raise Exception("connection can't be established, since it's " +
+                            "not even connected")
+        self._established = True
+        self._invokeConnectionEstablishedCallback()
+
+    def run(self):
+        """
+        opens and initializes the connection, contains the listening loop,
+        and closes the connection.
+        """
+        try:
+            if not self._openConnection():
+                raise Exception("unknown error")
+        except:
+            self._log("connection could not be opened:\n" +
+                      str(sys.exc_info()[0]), 0)
+            self._log(traceback.format_exc(), 1)
+            self._invokeConnectionFailedCallback()
+            return
+        else:
+            self._log("connection successfully opened", 2)
+
+        try:
+            if not self._initConnection():
+                raise Exception("unknown error")
+        except:
+            self._logException("initial packages could not be sent")
+            # TODO shouldn't there be some call to self._closeConnection here?
+            # why else would we even differentiate between openConnection and
+            # initConnection?
+            self._invokeConnectionFailedCallback()
+            return
+        else:
+            self._log("initial packages successfully sent", 2)
+
+        # we can now consider ourselves connected.
+        # please note that the connection does not count as 'established' yet,
+        # as authorization may still be required.
+        # call _connectionEstablished() yourself.
+        self._connected = True
+
+        try:
+            # ... for example from _postConnect()!
+            if not self._postConnect():
+                raise Exception("postConnect error")
+
+            # you may even call it from inside _listen() once that auth
+            # confirm arrives.
+            while self._connected:
+                if not self._listen():
+                    raise Exception("listening error")
+
+        except:
+            self._logException("connection terminated with error", 0)
+        else:
+            self._log("connection terminated without error", 1)
+
+        self._established = False
+        self._connected = False
+
+        # try to close the file/socket, in case it's still open.
+        try:
+            if not self._closeConnection():
+                raise Exception("unknown error")
+        except:
+            self._logException("could not close socket", 1)
+        else:
+            self._log("socket successfully closed", 2)
+
+        # invoke the connectionLost callback functions.
+        self._invokeConnectionLostCallback()
+
+    def _sendMessage(self, message):
+        """
+        sends a message, taking care of thread-safety and error handling.
+        calls _sendMessageUnsafe to do the actual job; overload that.
+        """
+        with self._sendingLock:
+            try:
+                # synchronized gschichten.
+                if not self._sendMessageUnsafe(message):
+                    return False
+            except:
+                self._logException("could not send message", 1)
+                self._connected = False
+                return False
+            return True
+
+    def sendTextMessage(self, message):
+        """
+        sends a text message, taking care of thread-safety and error
+        handling.
+        calls _sendTextMessageUnsafe to do the actual job; overload
+        that. From _sendTextMessageUnsafe, _sendMessage MUST be
+        called.
+        """
+        try:
+            if not self._established:
+                raise Exception("connection not established")
+            if not self._sendTextMessageUnsafe(message):
+                raise Exception("unknown error")
+        except:
+            self._logException("could not send text message", 1)
+
+    def _log(self, message, level):
+        if(self._loglevel >= level):
+            for line in message.split('\n'):
+                try:
+                    oline = line.encode('utf-8', errors='ignore')
+                except:
+                    oline = repr(line)
+                print("(" + str(level) + ") " + self._name + ": " + oline)
+
+    def _logException(self, message, level):
+        self._log(message + ": " + str(sys.exc_info()[0]), level)
+        self._log(traceback.format_exc(), level + 1)

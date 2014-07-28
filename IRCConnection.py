@@ -3,104 +3,134 @@ import sys
 import socket
 import string
 
+
 class IRCConnection(AbstractConnection.AbstractConnection):
+    def __init__(self, hostname, port, nickname, channel, encoding, name,
+                 loglevel):
+        super(IRCConnection, self).__init__(name, loglevel)
+        self._hostname = hostname
+        self._port = port
+        self._nickname = nickname
+        self._channel = channel
+        self._encoding = encoding
+        self._socket = None
 
-	# call the superconstructor and set global configuration variables.
-	def __init__(self, hostname, port, nickname, channel, encoding, name, loglevel):
-		super(IRCConnection,self).__init__(name, loglevel)
-		self._hostname = hostname
-		self._port = port
-		self._nickname = nickname
-		self._channel = channel
-		self._encoding = encoding
-		# the socket that will be used for communication with the IRC server:
-		self._socket = None
+        # contains all read, but uninterpreted data
+        self._readBuffer = ""
 
-	# open the socket and return true. don't catch exceptions, since the run() wrapper will do that.
-	def _openConnection(self):
-		self._socket = socket.socket()
-		self._socket.connect((self._hostname, self._port))
-		return True
+    def _openConnection(self):
+        self._socket = socket.socket()
+        self._socket.connect((self._hostname, self._port))
+        return True
 
-	# send initial packages (NICKname, USER identification, channel JOIN).
-	def _initConnection(self):
-		if not self._sendMessage("NICK %s" % self._nickname):
-			raise Exception("could not send NICK message.")
-		if not self._sendMessage("USER %s %s bla :%s" % (self._nickname, self._hostname, self._nickname)):
-			raise Exception("could not send USER message.")
-		if not self._sendMessage("JOIN #%s" % self._channel):
-			raise Exception("could not send JOIN message.")
-		return True
+    def _initConnection(self):
+        """
+        send initial packages:
+            NICKname, USER identification, channel JOIN
+        """
+        if not self._sendMessage("NICK %s" % self._nickname):
+            raise Exception("could not send NICK message.")
+        if not self._sendMessage("USER %s %s bla :%s" %
+                                 (self._nickname,
+                                  self._hostname,
+                                  self._nickname)):
+            raise Exception("could not send USER message.")
+        if not self._sendMessage("JOIN #%s" % self._channel):
+            raise Exception("could not send JOIN message.")
 
-	# post-connect, call _connectionEstablished() and return true.
-	def _postConnect(self):
-		return True
+        return True
 
-	# close the socket.
-	def _closeConnection(self):
-		self._sendMessage("QUIT");
-		self._socket.shutdown(socket.SHUT_RDWR)
-		self._socket.close()
-		return True
+    def _postConnect(self):
+        """
+        _connectionEstablished() will be called later, in _listen().
+        """
+        return True
 
-	# the read buffer, which contains all currently read, but uninterpreted data.
-	_readBuffer = ""
+    def _closeConnection(self):
+        self._sendMessage("QUIT")
+        self._socket.shutdown(socket.SHUT_RDWR)
+        self._socket.close()
+        return True
 
-	# read and interpret data from socket in this method.
-	def _listen(self):
-		# read up to 1 kB of data into the buffer.
-		self._readBuffer += self._socket.recv(1024)
-		# get all distinct lines from the buffer into lines.
-		lines = self._readBuffer.split('\n')
-		# move the last (unfinished) line back into the buffer.
-		self._readBuffer = lines.pop()
+    def _listen(self):
+        """
+        reads a bunch of data from the socket, splits it up in lines,
+        and interprets them.
+        the last line, if unfinished, is not interpreted and saved for the
+        next _listen() call.
+        """
 
-		# process all lines.
-		for line in lines:
-			try:
-				iline = line.decode(self._encoding, errors='ignore')
-			except:
-				self._log("received a line which is not valid " + self._encoding + ": " + repr(iline), 1)
-			line = iline
-			self._log("rx: "+line, 3)
-			# split the line up at spaces
-			line = line.rstrip().split(' ', 3)
+        # read up to 1 kB of data into the buffer.
+        self._readBuffer += self._socket.recv(1024)
+        # get all distinct lines from the buffer into lines.
+        lines = self._readBuffer.split('\n')
+        # move the last (unfinished) line back into the buffer.
+        self._readBuffer = lines.pop()
 
-			# check if the line contains a ping message (PING)
-			if(len(line) >= 2):
-				if(line[0] == "PING"):
-					self._sendMessage("PONG " + line[1])
+        # process all lines.
+        for line in lines:
+            try:
+                # TODO: try decode as hard as possible
+                iline = line.decode(self._encoding, errors='ignore')
+            except:
+                self._log("received a line which is not valid " +
+                          self._encoding + ": " + repr(iline), 1)
+            line = iline
+            self._log("rx: "+line, 3)
+            # split the line up at spaces
+            line = line.rstrip().split(' ', 3)
 
-			# check if the line contains a private message (PRIVMSG)
-			if(len(line) >= 4):
-				if(line[1] == "PRIVMSG"):
-					self._invokeTextCallback(line[0].split('!')[0].lstrip(': '), line[3].lstrip(': '))
-				if(line[3] == "#" + self._channel + " :End of /NAMES list."):
-					self._connectionEstablished();
+            if len(line) < 2:
+                continue
 
-		return True
+            # check if the line contains a ping message (PING)
+            if line[0] == "PING":
+                self._sendMessage("PONG " + line[1])
 
-	# send the given line via the socket. don't catch any exceptions.
-	def _sendMessageUnsafe(self, message):
-		self._log("tx: " + message, 3)
-		try:
-			self._socket.send(message.encode(self._encoding, errors='ignore') + "\n")
-		except Exception as e:
-			self._log("failed sending %s: " % (message) + str(e), 1)
-			return False
-		return True
+            if len(line) < 4:
+                continue
 
-	# pass the given line to _sendMessage, encoded as a PRIVMSG to #self._channel.
-	def _sendTextMessageUnsafe(self, message):
-		return self._sendMessage("PRIVMSG #" + self._channel + " :" + message)
+            # check if the line contains a private message (PRIVMSG)
+            if line[1] == "PRIVMSG":
+                self._invokeTextCallback(line[0].split('!')[0].lstrip(': '),
+                                         line[3].lstrip(': '))
 
-	# send /AWAY command to IRC server with optional message (if no message then mark no longer away)
-	def setAway(self, message=None):
-		if not self._established:
-			self._log("can't set IRC away status since connection not established", 1)
-			return False
+            if line[3] == "#" + self._channel + " :End of /NAMES list.":
+                self._connectionEstablished()
 
-		if message:
-			return self._sendMessage("AWAY" + " :" + message)
-		else:
-			return self._sendMessage("AWAY")
+        return True
+
+    def _sendMessageUnsafe(self, message):
+        """
+        send the given line via the socket.
+        """
+        self._log("tx: " + message, 3)
+        try:
+            self._socket.send(message.encode(self._encoding, errors='ignore') +
+                              "\n")
+        except Exception as e:
+            self._log("failed sending %s: " % (message) + str(e), 1)
+            return False
+        return True
+
+    def _sendTextMessageUnsafe(self, message):
+        """
+        send a PRIVMSG to #self._channel
+        """
+        return self._sendMessage("PRIVMSG #" + self._channel + " :" + message)
+
+    def setAway(self, message=None):
+        """
+        send /AWAY command to IRC server
+
+        if message=None, remove 'away' status
+        else, set away message.
+        """
+        if not self._established:
+            self._log("can't set away status: connection not established", 1)
+            return False
+
+        if message:
+            return self._sendMessage("AWAY" + " :" + message)
+        else:
+            return self._sendMessage("AWAY")
