@@ -1,0 +1,18 @@
+# sft mumble bot example config file
+
+[mumble]
+server=mumble.example.com
+port=64738                 ; mumble default port
+nickname=sftbot
+channel=testchannel
+password=hunter2
+loglevel=3
+
+
+[irc]
+server=irc.example.com
+port=6667                  ; irc default port
+nickname=sftbot
+channel=myawesomebotchannel
+encoding=utf-8
+loglevel=3

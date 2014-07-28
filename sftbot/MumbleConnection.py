@@ -2,36 +2,36 @@ import AbstractConnection
 import sys
 import socket
 import string
-import Mumble_pb2
 import time
 import ssl
 import platform
 import struct
 import thread
+import sftbot.protobuf.Mumble_pb2 as pb2
 
 messageTypes = {
-    0: Mumble_pb2.Version,
-    1: Mumble_pb2.UDPTunnel,
-    2: Mumble_pb2.Authenticate,
-    3: Mumble_pb2.Ping,
-    4: Mumble_pb2.Reject,
-    5: Mumble_pb2.ServerSync,
-    6: Mumble_pb2.ChannelRemove,
-    7: Mumble_pb2.ChannelState,
-    8: Mumble_pb2.UserRemove,
-    9: Mumble_pb2.UserState,
-    10: Mumble_pb2.BanList,
-    11: Mumble_pb2.TextMessage,
-    12: Mumble_pb2.PermissionDenied,
-    13: Mumble_pb2.ACL,
-    14: Mumble_pb2.QueryUsers,
-    15: Mumble_pb2.CryptSetup,
-    16: Mumble_pb2.ContextActionAdd,
-    17: Mumble_pb2.ContextAction,
-    18: Mumble_pb2.UserList,
-    19: Mumble_pb2.VoiceTarget,
-    20: Mumble_pb2.PermissionQuery,
-    21: Mumble_pb2.CodecVersion}
+    0: pb2.Version,
+    1: pb2.UDPTunnel,
+    2: pb2.Authenticate,
+    3: pb2.Ping,
+    4: pb2.Reject,
+    5: pb2.ServerSync,
+    6: pb2.ChannelRemove,
+    7: pb2.ChannelState,
+    8: pb2.UserRemove,
+    9: pb2.UserState,
+    10: pb2.BanList,
+    11: pb2.TextMessage,
+    12: pb2.PermissionDenied,
+    13: pb2.ACL,
+    14: pb2.QueryUsers,
+    15: pb2.CryptSetup,
+    16: pb2.ContextActionAdd,
+    17: pb2.ContextAction,
+    18: pb2.UserList,
+    19: pb2.VoiceTarget,
+    20: pb2.PermissionQuery,
+    21: pb2.CodecVersion}
 
 for k, v in messageTypes.items():
     v.typeID = k
@@ -93,7 +93,7 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
 
     def _initConnection(self):
         # send version package.
-        pbMess = Mumble_pb2.Version()
+        pbMess = pb2.Version()
         pbMess.release = "1.2.4"
         pbMess.version = 66048
         pbMess.os = platform.system()
@@ -101,7 +101,7 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
         if not self._sendMessage(pbMess):
             raise Exception("couldn't send version package", 0)
         # send auth package.
-        pbMess = Mumble_pb2.Authenticate()
+        pbMess = pb2.Authenticate()
         pbMess.username = self._nickname
         if self._password is not None:
             pbMess.password = self._password
@@ -145,7 +145,7 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
             return True
 
         # parse the message.
-        if messagetype != Mumble_pb2.UDPTunnel:
+        if messagetype != pb2.UDPTunnel:
             try:
                 pbMess.ParseFromString(data)
             except:
@@ -154,18 +154,18 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
                 return True
 
         # handle the message.
-        if messagetype == Mumble_pb2.ServerSync:
+        if messagetype == pb2.ServerSync:
             self._log("server sync package received. session="
                       + str(pbMess.session), 1)
             self._session = pbMess.session
             self._joinChannel(self._channel)
-        elif messagetype == Mumble_pb2.ChannelState:
+        elif messagetype == pb2.ChannelState:
             self._log("channel state package received", 2)
             if(pbMess.name):
                 self._log("channel " + pbMess.name + " has id " +
                           str(pbMess.channel_id), 2)
                 self._channelIds[pbMess.name] = pbMess.channel_id
-        elif messagetype == Mumble_pb2.TextMessage:
+        elif messagetype == pb2.TextMessage:
             try:
                 sender = self._users[pbMess.actor]
             except:
@@ -174,7 +174,7 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
                           str(pbMess.actor), 3)
             self._log("text message received, sender: " + sender, 2)
             self._invokeTextCallback(sender, pbMess.message)
-        elif messagetype == Mumble_pb2.UserState:
+        elif messagetype == pb2.UserState:
             self._log("user state package received.", 2)
             if(pbMess.name and pbMess.session):
                 self._users[pbMess.session] = pbMess.name
@@ -189,9 +189,9 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
                 self._log("I was dragged into another channel. Channel id:" +
                           str(pbMess.channel_id), 2)
 
-        elif messagetype == Mumble_pb2.UDPTunnel:
+        elif messagetype == pb2.UDPTunnel:
             self._log("won't analyze your voice packages, sorry", 4)
-        elif messagetype == Mumble_pb2.Ping:
+        elif messagetype == pb2.Ping:
             self._log("ping answer received", 3)
         else:
             self._log("unhandeled package received: " + messagetype.__name__ +
@@ -214,7 +214,7 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
         """
         send message as a TextMessage.
         """
-        pbMess = Mumble_pb2.TextMessage()
+        pbMess = pb2.TextMessage()
         pbMess.session.append(self._session)
         pbMess.channel_id.append(self._channelId)
         pbMess.message = message
@@ -223,7 +223,7 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
 
     def _pingLoop(self):
         while self._connected:
-            pbMess = Mumble_pb2.Ping()
+            pbMess = pb2.Ping()
             if not self._sendMessage(pbMess):
                 self._log("failed to send ping message", 1)
             time.sleep(10)
@@ -244,7 +244,7 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
         self._log("sending package to join channel " + channel +
                   " (id " + str(cid) + ")", 2)
 
-        pbMess = Mumble_pb2.UserState()
+        pbMess = pb2.UserState()
         pbMess.session = self._session
         pbMess.channel_id = cid
         if not self._sendMessage(pbMess):
@@ -267,7 +267,7 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
             self._log("can't set user comment: too long (>128 bytes)", 1)
             return False
 
-        pbMess = Mumble_pb2.UserState()
+        pbMess = pb2.UserState()
         pbMess.session = self._session
         pbMess.comment = message
         pbMess.channel_id = self._channelId

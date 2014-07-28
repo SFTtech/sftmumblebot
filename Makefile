@@ -1,5 +1,7 @@
-# used to auto-generate Mumble_pb2.py
-# (usually you won't need to call this directly)
+all:
+	make -C sftbot all
 
-Mumble_pb2.py: Mumble.proto
-	protoc --python_out=. Mumble.proto
+clean:
+	make -C sftbot clean
+
+.PHONY: all clean

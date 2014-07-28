@@ -11,8 +11,6 @@ irc = None
 mumble = None
 console = None
 
-conffile = "sftbot.conf"
-
 
 def mumbleTextMessageCallback(sender, message):
     line = "mumble: " + sender + ": " + message
@@ -85,11 +83,25 @@ def main():
 
     loglevel = 3
 
-    if not os.path.isfile(conffile):
-        raise Exception('configuration file not found or unreadable: ' +
-                        conffile)
+    if len(sys.argv) > 1:
+        # load the user-specified conffile
+        conffiles = [sys.argv[1]]
+    else:
+        # try finding a confile at one of the default paths
+        conffiles = ["sftbot.conf", "/etc/sftbot.conf"]
 
-    # create python's configparser and read our configfile
+    # try all of the possible conffile paths
+    for conffile in conffiles:
+        if os.path.isfile(conffile):
+            break
+    else:
+        if len(conffiles) == 1:
+            raise Exception("conffile not found (" + conffiles[0] + ")")
+        else:
+            raise Exception("conffile not found at any of these paths: " +
+                            ", ".join(conffiles))
+
+    # read the conffile from the identified path
     cparser = ConfigParser.ConfigParser()
     cparser.read(conffile)
 

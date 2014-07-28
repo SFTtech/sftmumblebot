@@ -9,3 +9,6 @@ irc_join_successfull_message
 log
 nohup.out
 sftbot.conf
+MANIFEST
+dist
+build

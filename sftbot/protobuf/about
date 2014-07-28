@@ -1,0 +1,9 @@
+For most messages (anything except voice packages), Mumble uses Google Protobuf.
+
+The protocol is specified in Mumble.proto. Google protoc is required to generate
+the file Mumble_pb2.py, using the supplied Makefile.
+
+A (hopefully) recent version of Mumble_pb2.py is shipped, so you shouldn't need
+to do anything manually.
+
+Otherwise, run make clean and make to create a new version of the file.
