@@ -2,7 +2,7 @@ package MumbleProto;
 
 option optimize_for = SPEED;
 
-message	Version {
+message Version {
 	optional uint32 version = 1;
 	optional string release = 2;
 	optional string os = 3;
