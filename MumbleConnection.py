@@ -9,32 +9,34 @@ import platform
 import struct
 import thread
 
+messageTypes = {
+    0: Mumble_pb2.Version,
+    1: Mumble_pb2.UDPTunnel,
+    2: Mumble_pb2.Authenticate,
+    3: Mumble_pb2.Ping,
+    4: Mumble_pb2.Reject,
+    5: Mumble_pb2.ServerSync,
+    6: Mumble_pb2.ChannelRemove,
+    7: Mumble_pb2.ChannelState,
+    8: Mumble_pb2.UserRemove,
+    9: Mumble_pb2.UserState,
+    10: Mumble_pb2.BanList,
+    11: Mumble_pb2.TextMessage,
+    12: Mumble_pb2.PermissionDenied,
+    13: Mumble_pb2.ACL,
+    14: Mumble_pb2.QueryUsers,
+    15: Mumble_pb2.CryptSetup,
+    16: Mumble_pb2.ContextActionAdd,
+    17: Mumble_pb2.ContextAction,
+    18: Mumble_pb2.UserList,
+    19: Mumble_pb2.VoiceTarget,
+    20: Mumble_pb2.PermissionQuery,
+    21: Mumble_pb2.CodecVersion}
+
+for k, v in messageTypes.items():
+    v.typeID = k
 
 class MumbleConnection(AbstractConnection.AbstractConnection):
-    # lookup table required for protobuf message type -> message type ID
-    _messageLookupMessage = {
-        Mumble_pb2.Version: 0,
-        Mumble_pb2.UDPTunnel: 1,
-        Mumble_pb2.Authenticate: 2,
-        Mumble_pb2.Ping: 3,
-        Mumble_pb2.Reject: 4,
-        Mumble_pb2.ServerSync: 5,
-        Mumble_pb2.ChannelRemove: 6,
-        Mumble_pb2.ChannelState: 7,
-        Mumble_pb2.UserRemove: 8,
-        Mumble_pb2.UserState: 9,
-        Mumble_pb2.BanList: 10,
-        Mumble_pb2.TextMessage: 11,
-        Mumble_pb2.PermissionDenied: 12,
-        Mumble_pb2.ACL: 13,
-        Mumble_pb2.QueryUsers: 14,
-        Mumble_pb2.CryptSetup: 15,
-        Mumble_pb2.ContextActionAdd: 16,
-        Mumble_pb2.ContextAction: 17,
-        Mumble_pb2.UserList: 18,
-        Mumble_pb2.VoiceTarget: 19,
-        Mumble_pb2.PermissionQuery: 20,
-        Mumble_pb2.CodecVersion: 21}
 
     # call the superconstructor and set global configuration variables.
     def __init__(self, hostname, port, nickname, channel, password, name,
@@ -45,15 +47,6 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
         self._nickname = nickname
         self._channel = channel
         self._password = password
-
-        # build the message lookup number table.
-        # TODO use a dict comprehension...
-        # and define those things outside the class...
-        # and rename them....
-        # what was I thinking back then?
-        self._messageLookupNumber = {}
-        for i in self._messageLookupMessage.keys():
-            self._messageLookupNumber[self._messageLookupMessage[i]] = i
 
         # channel id lookup table
         self._channelIds = {}
@@ -144,7 +137,7 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
 
         # look up the message type and invoke the message type's constructor.
         try:
-            messagetype = self._messageLookupNumber[mid]
+            messagetype = messageTypes[mid]
             pbMess = messagetype()
         except:
             self._log("unknown package id: " + str(mid), 1)
@@ -207,8 +200,7 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
     def _sendMessageUnsafe(self, message):
         stringMessage = message.SerializeToString()
         length = len(stringMessage)
-        header = struct.pack(">HI", self._messageLookupMessage[type(message)],
-                             length)
+        header = struct.pack(">HI", message.typeID, length)
         packedMessage = header + stringMessage
         while len(packedMessage) > 0:
             sent = self._socket.send(packedMessage)
