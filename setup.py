@@ -23,7 +23,14 @@ setup(
     author="Michael Ensslin (see COPYING for contributors)",
     author_email="michael@ensslin.cc",
     url="https://github.com/SFTtech/sftmumblebot",
-    license="GPLv3 or higher",
+    license="GPLv3+",
     packages=["sftbot", "sftbot/protobuf"],
     scripts=["bin/sftbot"],
+    classifiers=[
+        "Environment :: Console",
+        "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+        "Operating System :: OS Independent",
+        "Topic :: Communications :: Chat :: Internet Relay Chat",
+        "Topic :: Communications :: Telephony",
+    ],
 )
