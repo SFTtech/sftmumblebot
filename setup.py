@@ -1,4 +1,5 @@
 #!/usr/bin/env python2
+
 from distutils.core import setup
 from sftbot import VERSION
 from sys import version_info
@@ -8,7 +9,8 @@ if version_info[0] != 2:
     print("use python2 to install sftmumblebot")
     exit(1)
 
-if not path.isfile("sftbot/protobuf/Mumble_pb2.py"):
+pb_filename = path.join(path.dirname(__file__), "sftbot/protobuf/Mumble_pb2.py")
+if not path.isfile(pb_filename):
     print("Mumble_pb2.py has not been generated yet.\nrun make first.")
     exit(1)
 
