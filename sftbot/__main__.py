@@ -122,7 +122,8 @@ def main():
     ircport = int(cparser.get('irc', 'port'))
     ircnick = cparser.get('irc', 'nickname')
     ircchannel = cparser.get('irc', 'channel')
-    ircpassword = cparser.get('irc', 'password', None)
+    ircpassword = cparser.get('irc', 'password', '')
+    ircauthtype = cparser.get('irc', 'authtype')
     ircencoding = cparser.get('irc', 'encoding')
     ircloglevel = int(cparser.get('irc', 'loglevel'))
 
@@ -143,6 +144,7 @@ def main():
         ircnick,
         ircchannel,
         ircpassword,
+        ircauthtype,
         ircencoding,
         "irc",
         ircloglevel)

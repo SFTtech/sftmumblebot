@@ -7,13 +7,18 @@ import util
 
 class IRCConnection(AbstractConnection.AbstractConnection):
     def __init__(self, hostname, port, nickname, channel, password,
-                 encoding, name, loglevel):
+                 authtype, encoding, name, loglevel):
         super(IRCConnection, self).__init__(name, loglevel)
         self._hostname = hostname
         self._port = port
         self._nickname = nickname
         self._channel = channel
         self._password = password
+        self._authtype = authtype.lower()
+
+        if authtype not in {'none', 'channelkey', 'pass', 'nickserv'}:
+            raise Exception("invalid authtype: %s" % authtype)
+
         self._encoding = encoding
         self._socket = None
 
@@ -30,6 +35,9 @@ class IRCConnection(AbstractConnection.AbstractConnection):
         send initial packages:
             NICKname, USER identification, channel JOIN
         """
+        if self._authtype == 'pass':
+            if not self._sendMessage("PASS %s" % self._password):
+                raise Exception("could not send PASS message.")
         if not self._sendMessage("NICK %s" % self._nickname):
             raise Exception("could not send NICK message.")
         if not self._sendMessage("USER %s %s bla :%s" %
@@ -38,8 +46,13 @@ class IRCConnection(AbstractConnection.AbstractConnection):
                                   self._nickname)):
             raise Exception("could not send USER message.")
 
+        if self._authtype == 'nickserv':
+            if not self._sendMessage("PRIVMSG NickServ IDENTIFY %s"
+                                     % self._password):
+                raise Exception("could not send IDENTIFY message to NickServ")
+
         joincmd = "JOIN #%s" % self._channel
-        if self._password:
+        if self._authtype == 'channelkey':
             joincmd += " " + self._password
 
         if not self._sendMessage(joincmd):
