@@ -189,6 +189,8 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
                 self._log("I was dragged into another channel. Channel id:" +
                           str(pbMess.channel_id), 2)
 
+                self._connectionEstablished()
+
         elif messagetype == pb2.UDPTunnel:
             self._log("won't analyze your voice packages, sorry", 4)
         elif messagetype == pb2.Ping:
