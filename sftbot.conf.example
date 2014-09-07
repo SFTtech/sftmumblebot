@@ -6,7 +6,7 @@ port=64738                 ; mumble default port
 nickname=sftbot
 channel=testchannel
 password=hunter2
-loglevel=3
+loglevel=3                 ; for production use, I'd recommend 1 or 2
 
 
 [irc]
@@ -17,4 +17,4 @@ channel=myawesomebotchannel
 authtype=none              ; possibilities: {none, channelkey, nickserv, pass}
 password=hunter2           ; will be ignored if authtype == none
 encoding=utf-8
-loglevel=3
+loglevel=3                 ; for production use, I'd recommend 1 or 2
