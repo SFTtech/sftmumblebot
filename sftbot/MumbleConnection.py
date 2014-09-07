@@ -259,16 +259,18 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
         set user comment
         """
         if not self._session:
-            self._log("can't set user comment: no valid session id", 1)
+            self._log("can't set comment to %s: no valid session id"
+                      % message, 1)
             return False
 
-        if not hasattr(self, "_session"):
-            self._log("can't set user comment to %s: no valid channel id")
+        if not self._established:
+            self._log("can't set comment to %s: connection not established"
+                      % message, 1)
             return False
 
         if len(message) > 128:
             # longer comments would require handling RequestBlob messages
-            self._log("can't set user comment: too long (>128 bytes)", 1)
+            self._log("can't set comment: too long (>128 bytes)", 1)
             return False
 
         pbMess = pb2.UserState()
