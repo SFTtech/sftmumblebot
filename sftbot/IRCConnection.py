@@ -6,13 +6,14 @@ import util
 
 
 class IRCConnection(AbstractConnection.AbstractConnection):
-    def __init__(self, hostname, port, nickname, channel, encoding, name,
-                 loglevel):
+    def __init__(self, hostname, port, nickname, channel, password,
+                 encoding, name, loglevel):
         super(IRCConnection, self).__init__(name, loglevel)
         self._hostname = hostname
         self._port = port
         self._nickname = nickname
         self._channel = channel
+        self._password = password
         self._encoding = encoding
         self._socket = None
 
@@ -36,7 +37,12 @@ class IRCConnection(AbstractConnection.AbstractConnection):
                                   self._hostname,
                                   self._nickname)):
             raise Exception("could not send USER message.")
-        if not self._sendMessage("JOIN #%s" % self._channel):
+
+        joincmd = "JOIN #%s" % self._channel
+        if self._password:
+            joincmd += " " + self._password
+
+        if not self._sendMessage(joincmd):
             raise Exception("could not send JOIN message.")
 
         return True
