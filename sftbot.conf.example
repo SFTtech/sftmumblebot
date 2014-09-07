@@ -14,5 +14,7 @@ server=irc.example.com
 port=6667                  ; irc default port
 nickname=sftbot
 channel=myawesomebotchannel
+authtype=none              ; possibilities: {none, channelkey, nickserv, pass}
+password=hunter2           ; will be ignored if authtype == none
 encoding=utf-8
 loglevel=3
