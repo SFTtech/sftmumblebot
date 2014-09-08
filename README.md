@@ -11,6 +11,18 @@ You need to provide a config file that (among others) contains user credentials 
 
 You can either specify a conf file path as a command line argument (`sftbot myconffile.conf`), or place it at `./sftbot.conf` or `/etc/sftbot.conf`.
 
+### Behaviour
+
+By default, the bot
+
+- Relays messages from a mumble channel to an IRC channel
+- Leaves the channel when somebody types 'gtfo'
+- Tries to reconnect on connection failures
+
+However, this behaviour can be altered easily by editing `sftbot/__main__.py`, which contains several fairly self-explainatory callback functions that will be automatically invoked at the appropriate times.
+For example, certain IRC messages may be ignored by adding a line `if message.contains('bannedtext'): return` to the top of `ircTextMessageCallback`.
+More complex, 'botty' behaviour may be implemented the same way; note that you can call `irc.sendTextMessage()` and `mumble.sendTextMessage()` from everywhere within the callback functions.
+
 ### Dependencies
 
 - python2
