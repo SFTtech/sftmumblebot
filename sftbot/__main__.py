@@ -62,7 +62,7 @@ def ircConnected():
 
 
 def ircDisconnected():
-    linei = "connection to irc lost. reconnect in 15 seconds."
+    line = "connection to irc lost. reconnect in 15 seconds."
     console.sendTextMessage(line)
     mumble.setComment(line)
     time.sleep(15)
