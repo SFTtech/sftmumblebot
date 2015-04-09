@@ -155,8 +155,8 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
 
         # handle the message.
         if messagetype == pb2.ServerSync:
-            self._log("server sync package received. session="
-                      + str(pbMess.session), 1)
+            self._log("server sync package received. session=" +
+                      str(pbMess.session), 1)
             self._session = pbMess.session
             self._joinChannel(self._channel)
         elif messagetype == pb2.ChannelState:
