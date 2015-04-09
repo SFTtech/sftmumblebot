@@ -24,6 +24,7 @@ class IRCConnection(AbstractConnection.AbstractConnection):
 
         # contains all read, but uninterpreted data
         self._readBuffer = ""
+        self.welcomemsg_received = False
 
     def _openConnection(self):
         self._socket = socket.socket()
@@ -35,6 +36,7 @@ class IRCConnection(AbstractConnection.AbstractConnection):
         send initial packages:
             NICKname, USER identification, channel JOIN
         """
+
         if self._authtype == 'pass':
             if not self._sendMessage("PASS %s" % self._password):
                 raise Exception("could not send PASS message.")
@@ -45,6 +47,11 @@ class IRCConnection(AbstractConnection.AbstractConnection):
                                   self._hostname,
                                   self._nickname)):
             raise Exception("could not send USER message.")
+
+        # wait for the welcome message
+        self._log("waiting for IRC welcome message 001...", 2)
+        while not self.welcomemsg_received:
+            self._listen()
 
         if self._authtype == 'nickserv':
             if not self._sendMessage("PRIVMSG NickServ IDENTIFY %s"
@@ -111,6 +118,9 @@ class IRCConnection(AbstractConnection.AbstractConnection):
 
             if line[1] == "366":  # RPL_ENDOFNAMES
                 self._connectionEstablished()
+
+            elif line[1] == "001":
+                self.welcomemsg_received = True
 
         return True
 
