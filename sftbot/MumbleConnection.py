@@ -25,7 +25,8 @@ messageTypes = {
     12: pb2.PermissionDenied,
     13: pb2.ACL,
     14: pb2.QueryUsers,
-    15: pb2.CryptSetup}
+    15: pb2.CryptSetup,
+}
 
 for k, v in messageTypes.items():
     v.typeID = k
@@ -129,7 +130,9 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
         else:
             raise Exception("expected 6 bytes, but got " + str(len(header)))
 
-        data = self._socket.recv(size)
+        data = bytearray()
+        while len(data) < size:
+            data.extend(self._socket.recv(size - len(data)))
 
         # look up the message type and invoke the message type's constructor.
         try:
