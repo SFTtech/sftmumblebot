@@ -25,13 +25,7 @@ messageTypes = {
     12: pb2.PermissionDenied,
     13: pb2.ACL,
     14: pb2.QueryUsers,
-    15: pb2.CryptSetup,
-    16: pb2.ContextActionAdd,
-    17: pb2.ContextAction,
-    18: pb2.UserList,
-    19: pb2.VoiceTarget,
-    20: pb2.PermissionQuery,
-    21: pb2.CodecVersion}
+    15: pb2.CryptSetup}
 
 for k, v in messageTypes.items():
     v.typeID = k
@@ -105,6 +99,7 @@ class MumbleConnection(AbstractConnection.AbstractConnection):
         pbMess.username = self._nickname
         if self._password is not None:
             pbMess.password = self._password
+        pbMess.opus = True
         if not self._sendMessage(pbMess):
             raise Exception("couldn't send auth package", 0)
         # great success.
